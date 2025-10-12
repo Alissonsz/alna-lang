@@ -2,6 +2,7 @@ package main
 
 import (
 	"alna-lang/src/lexer"
+	"alna-lang/src/parser"
 	"bufio"
 	"log"
 	"os"
@@ -21,5 +22,11 @@ func main() {
 	scanner := bufio.NewScanner(srcCode)
 	lex := lexer.NewLexer(*scanner)
 
-	lex.Analyze()
+	tokens, err := lex.Analyze()
+	if err != nil {
+		log.Panicf("Lexical analysis error: %v", err.Error())
+	}
+
+	parser := parser.NewParser(tokens)
+	_ = parser.Parse()
 }

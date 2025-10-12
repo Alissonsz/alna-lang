@@ -2,7 +2,6 @@ package lexer
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 )
 
@@ -62,7 +61,6 @@ func (l *Lexer) consumeLine() *[]Token {
 			l.colNum++
 			continue
 		}
-		fmt.Printf("Token: %+v\n", token)
 		tokens = append(tokens, token)
 		l.colNum++
 	}
