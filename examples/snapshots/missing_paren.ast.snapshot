@@ -1,0 +1,6 @@
+Parser panicked: 
+[1;31mParser Error:[0m Unexpected end of input, expected closing parenthesis ')'
+[36mAfter line 1, column 23[0m
+
+  1 | int result = (5 + 3 * 2
+    |                        [1;31m^ expected more input here[0m

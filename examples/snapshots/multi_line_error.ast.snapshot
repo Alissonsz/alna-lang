@@ -1,0 +1,10 @@
+Parser panicked: 
+[1;31mParser Error:[0m Unexpected token '+'
+[36mAt line 4, column 6[0m
+
+  2 | int b = 20
+  3 | int c = 30
+  4 | int d + 40
+    |       [1;31m^[0m
+  5 | int e = 50
+  6 | int f = 60

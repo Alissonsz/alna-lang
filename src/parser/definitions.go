@@ -3,14 +3,17 @@ package parser
 import "alna-lang/src/lexer"
 
 type Parser struct {
-	tokens []lexer.Token
-	pos    int
-	ast    *RootNode
+	tokens      []lexer.Token
+	pos         int
+	ast         *Node
+	sourceLines []string
 }
 
 type Position struct {
-	Line   int
-	Column int
+	Line      int
+	Column    int
+	EndLine   int
+	EndColumn int
 }
 
 type Node interface {
@@ -42,6 +45,19 @@ func (n NumberNode) NodeType() string {
 
 func (n NumberNode) Pos() Position {
 	return n.position
+}
+
+type IdentifierNode struct {
+	Name     string
+	position Position
+}
+
+func (i IdentifierNode) NodeType() string {
+	return "IdentifierNode"
+}
+
+func (i IdentifierNode) Pos() Position {
+	return i.position
 }
 
 type BinaryOpNode struct {
@@ -87,4 +103,46 @@ func (l LowPrecedenceNode) NodeType() string {
 
 func (l LowPrecedenceNode) Pos() Position {
 	return l.position
+}
+
+type ParenthisedNode struct {
+	Expression Node
+	position   Position
+}
+
+func (p ParenthisedNode) NodeType() string {
+	return "ParenthisedNode"
+}
+
+func (p ParenthisedNode) Pos() Position {
+	return p.position
+}
+
+type AssignmentNode struct {
+	Left     Node
+	Right    Node
+	position Position
+}
+
+func (a AssignmentNode) NodeType() string {
+	return "AssignmentNode"
+}
+
+func (a AssignmentNode) Pos() Position {
+	return a.position
+}
+
+type VariableDeclarationNode struct {
+	Name        string
+	Type        string
+	Initializer Node
+	position    Position
+}
+
+func (v VariableDeclarationNode) NodeType() string {
+	return "VariableDeclarationNode"
+}
+
+func (v VariableDeclarationNode) Pos() Position {
+	return v.position
 }

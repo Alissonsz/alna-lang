@@ -1,0 +1,12 @@
+Root
+VariableDeclaration
+│   ├── Name: myVar
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 100
+Number: 123
+Assignment
+    ├── Target:
+    │   └── Identifier: invalid
+    └── Value:
+        └── Number: 50

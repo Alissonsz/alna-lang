@@ -1,0 +1,3 @@
+int a = 5
+int arisu = 100
+arisu = (10 + 5) * a

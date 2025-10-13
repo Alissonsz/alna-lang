@@ -1,0 +1,9 @@
+{Type:DataType Value:int Line:1 StartColumn:0 EndColumn:3}
+{Type:Identifier Value:result Line:1 StartColumn:4 EndColumn:10}
+{Type:Assignment Value:= Line:1 StartColumn:11 EndColumn:12}
+{Type:OpenParenthesis Value:( Line:1 StartColumn:13 EndColumn:14}
+{Type:Number Value:5 Line:1 StartColumn:14 EndColumn:15}
+{Type:BinaryOperador Value:+ Line:1 StartColumn:16 EndColumn:17}
+{Type:Number Value:3 Line:1 StartColumn:18 EndColumn:19}
+{Type:BinaryOperador Value:* Line:1 StartColumn:20 EndColumn:21}
+{Type:Number Value:2 Line:1 StartColumn:22 EndColumn:23}

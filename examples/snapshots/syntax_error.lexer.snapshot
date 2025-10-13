@@ -1,0 +1,7 @@
+{Type:DataType Value:int Line:1 StartColumn:0 EndColumn:3}
+{Type:Identifier Value:a Line:1 StartColumn:4 EndColumn:5}
+{Type:Assignment Value:= Line:1 StartColumn:6 EndColumn:7}
+{Type:Number Value:5 Line:1 StartColumn:8 EndColumn:9}
+{Type:Identifier Value:b Line:2 StartColumn:0 EndColumn:1}
+{Type:BinaryOperador Value:+ Line:2 StartColumn:2 EndColumn:3}
+{Type:Number Value:10 Line:2 StartColumn:4 EndColumn:6}

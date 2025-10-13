@@ -1,0 +1,21 @@
+Root
+VariableDeclaration
+│   ├── Name: a
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 5
+VariableDeclaration
+│   ├── Name: arisu
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 100
+Assignment
+    ├── Target:
+    │   └── Identifier: arisu
+    └── Value:
+        └── HighPrecedence (*)
+            ├── Parenthised
+            │   └── LowPrecedence (+)
+            │       ├── Number: 10
+            │       └── Number: 5
+            └── Identifier: a

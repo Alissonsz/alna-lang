@@ -1,0 +1,7 @@
+Parser panicked: 
+[1;31mParser Error:[0m Unexpected token '+'
+[36mAt line 2, column 2[0m
+
+  1 | int a = 5
+  2 | b + 10
+    |   [1;31m^[0m

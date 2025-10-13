@@ -1,0 +1,14 @@
+Root
+VariableDeclaration
+│   ├── Name: myVariable
+│   ├── Type: int
+│   └── Initializer:
+│       └── LowPrecedence (+)
+│           ├── Number: 123
+│           └── Number: 456
+Identifier: string
+Assignment
+    ├── Target:
+    │   └── Identifier: anotherVar
+    └── Value:
+        └── Number: 789

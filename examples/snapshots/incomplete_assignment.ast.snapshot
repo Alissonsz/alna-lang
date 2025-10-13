@@ -1,0 +1,7 @@
+Parser panicked: 
+[1;31mParser Error:[0m Unexpected end of input, expected expression after '='
+[36mAfter line 2, column 3[0m
+
+  1 | int x = 10
+  2 | y =
+    |    [1;31m^ expected more input here[0m

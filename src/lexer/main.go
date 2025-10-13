@@ -18,6 +18,7 @@ const (
 	Identifier       TokenType = "Identifier"
 	Assignment       TokenType = "Assignment"
 	DataType         TokenType = "DataType"
+	EOF              TokenType = "EOF"
 )
 
 type Token struct {
@@ -32,6 +33,7 @@ type Lexer struct {
 	srcCode             bufio.Scanner
 	lineNum             int
 	colNum              int
+	sourceLines         []string
 	binaryOperatorChars *regexp.Regexp
 	numberChars         *regexp.Regexp
 	whitespaceChars     *regexp.Regexp
@@ -47,6 +49,7 @@ func NewLexer(src bufio.Scanner) *Lexer {
 		srcCode:             src,
 		lineNum:             0,
 		colNum:              0,
+		sourceLines:         []string{},
 		binaryOperatorChars: regexp.MustCompile(`^[+\-*/]`),
 		numberChars:         regexp.MustCompile(`^[0-9]+`),
 		whitespaceChars:     regexp.MustCompile(`^[ \t]+`),
@@ -58,19 +61,23 @@ func NewLexer(src bufio.Scanner) *Lexer {
 	}
 }
 
-func (l *Lexer) Analyze() ([]Token, error) {
+func (l *Lexer) Analyze(verbose bool) ([]Token, []string, error) {
 	var tokens []Token
 
-	lineTokens := l.consumeLine()
-	for lineTokens != nil {
-		tokens = append(tokens, *lineTokens...)
-		lineTokens = l.consumeLine()
+	if verbose {
+		fmt.Println("=== TOKENS ===")
 	}
 
-	return tokens, nil
+	lineTokens := l.consumeLine(verbose)
+	for lineTokens != nil {
+		tokens = append(tokens, *lineTokens...)
+		lineTokens = l.consumeLine(verbose)
+	}
+
+	return tokens, l.sourceLines, nil
 }
 
-func (l *Lexer) consumeLine() *[]Token {
+func (l *Lexer) consumeLine(verbose bool) *[]Token {
 	if !l.srcCode.Scan() {
 		return nil
 	}
@@ -78,18 +85,26 @@ func (l *Lexer) consumeLine() *[]Token {
 	l.lineNum++
 	l.colNum = 0
 
+	// Store the source line
+	currentLine := l.srcCode.Text()
+	l.sourceLines = append(l.sourceLines, currentLine)
+
 	var tokens []Token
-	for l.colNum < len(l.srcCode.Text()) {
+	for l.colNum < len(currentLine) {
 		token := l.getNextToken()
 		if token.Type == Whitespace {
 			continue
 		}
 
-		fmt.Printf("%+v\n", token)
+		if verbose {
+			fmt.Printf("%+v\n", token)
+		}
 		tokens = append(tokens, token)
 	}
 
-	fmt.Printf("\n")
+	if verbose && len(tokens) > 0 {
+		fmt.Printf("\n")
+	}
 	return &tokens
 }
 

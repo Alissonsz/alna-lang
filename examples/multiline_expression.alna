@@ -1,0 +1,4 @@
+int a = 5
+int result = (10 +
+              20 * 3)
+int b = result * 2

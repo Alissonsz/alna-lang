@@ -1,0 +1,27 @@
+Root
+VariableDeclaration
+│   ├── Name: x
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 10
+VariableDeclaration
+│   ├── Name: y
+│   ├── Type: int
+│   └── Initializer:
+│       └── LowPrecedence (+)
+│           ├── Number: 20
+│           └── Number: 30
+VariableDeclaration
+│   ├── Name: result
+│   ├── Type: int
+│   └── Initializer:
+│       └── HighPrecedence (*)
+│           ├── Identifier: x
+│           └── Identifier: y
+Assignment
+    ├── Target:
+    │   └── Identifier: a
+    └── Value:
+        └── LowPrecedence (+)
+            ├── Number: 5
+            └── Number: 3
