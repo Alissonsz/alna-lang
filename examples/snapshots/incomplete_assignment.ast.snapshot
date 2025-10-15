@@ -1,5 +1,5 @@
 Parser panicked: 
-[1;31mParser Error:[0m Unexpected end of input, expected expression after '='
+[1;31mCompiler Error:[0m Unexpected end of input, expected expression after '='
 [36mAfter line 2, column 3[0m
 
   1 | int x = 10

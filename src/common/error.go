@@ -1,29 +1,29 @@
-package parser
+package common
 
 import (
-	"alna-lang/src/lexer"
 	"fmt"
 	"strings"
 )
 
-// Error reporting functions for the parser:
+// Error reporting functions for the compiler:
 //
-// - ParserError: Use for single-token errors (most common case)
-// - ParserErrorWithPosition: Use for multi-line construct errors (if/for/while blocks, etc.)
-// - ParserErrorEOF: Use when unexpectedly reaching end of input
-// - ParserErrorSimple: Use when no source location is available
+// - CompilerError: Use for single-position errors (most common case)
+// - CompilerErrorWithPosition: Use for multi-line construct errors (if/for/while blocks, etc.)
+// - CompilerErrorEOF: Use when unexpectedly reaching end of input
+// - CompilerErrorSimple: Use when no source location is available
 
-// ParserError creates a formatted error message with source code context
-func ParserError(token lexer.Token, message string, sourceLines []string) string {
+// CompilerError creates a formatted error message with source code context
+// This is the most common error function - use it for single-position errors
+func CompilerError(pos Position, message string, sourceLines []string) string {
 	var sb strings.Builder
 
 	// Error header
-	sb.WriteString(fmt.Sprintf("\n\033[1;31mParser Error:\033[0m %s\n", message))
-	sb.WriteString(fmt.Sprintf("\033[36mAt line %d, column %d\033[0m\n\n", token.Line, token.StartColumn))
+	sb.WriteString(fmt.Sprintf("\n\033[1;31mCompiler Error:\033[0m %s\n", message))
+	sb.WriteString(fmt.Sprintf("\033[36mAt line %d, column %d\033[0m\n\n", pos.Line, pos.Column))
 
 	// Show the source line if available
-	if token.Line > 0 && token.Line <= len(sourceLines) {
-		lineNum := token.Line
+	if pos.Line > 0 && pos.Line <= len(sourceLines) {
+		lineNum := pos.Line
 
 		// Calculate the maximum line number width for alignment
 		contextLines := 2 // lines before and after
@@ -51,12 +51,12 @@ func ParserError(token lexer.Token, message string, sourceLines []string) string
 		sb.WriteString(fmt.Sprintf("  %s | ", strings.Repeat(" ", maxLineNumWidth)))
 
 		// Add spacing before the pointer
-		if token.StartColumn > 0 {
-			sb.WriteString(strings.Repeat(" ", token.StartColumn))
+		if pos.Column > 0 {
+			sb.WriteString(strings.Repeat(" ", pos.Column))
 		}
 
 		// Add the pointer
-		pointerLength := token.EndColumn - token.StartColumn
+		pointerLength := pos.EndColumn - pos.Column
 		if pointerLength < 1 {
 			pointerLength = 1
 		}
@@ -73,19 +73,19 @@ func ParserError(token lexer.Token, message string, sourceLines []string) string
 	return sb.String()
 }
 
-// ParserErrorSimple creates a simple error message without source code context
-// Used when we don't have a specific token or when EOF is reached
-func ParserErrorSimple(message string) string {
-	return fmt.Sprintf("\n\033[1;31mParser Error:\033[0m %s\n", message)
+// CompilerErrorSimple creates a simple error message without source code context
+// Used when we don't have a specific token or when source location is unavailable
+func CompilerErrorSimple(message string) string {
+	return fmt.Sprintf("\n\033[1;31mCompiler Error:\033[0m %s\n", message)
 }
 
-// ParserErrorWithPosition creates an error message highlighting a Position span
+// CompilerErrorWithPosition creates an error message highlighting a Position span
 // This is useful for multi-line constructs like control flow statements
-func ParserErrorWithPosition(pos Position, message string, sourceLines []string) string {
+func CompilerErrorWithPosition(pos Position, message string, sourceLines []string) string {
 	var sb strings.Builder
 
 	// Error header
-	sb.WriteString(fmt.Sprintf("\n\033[1;31mParser Error:\033[0m %s\n", message))
+	sb.WriteString(fmt.Sprintf("\n\033[1;31mCompiler Error:\033[0m %s\n", message))
 	sb.WriteString(fmt.Sprintf("\033[36mAt line %d, column %d to line %d, column %d\033[0m\n\n",
 		pos.Line, pos.Column, pos.EndLine, pos.EndColumn))
 
@@ -165,18 +165,18 @@ func ParserErrorWithPosition(pos Position, message string, sourceLines []string)
 	return sb.String()
 }
 
-// ParserErrorEOF creates an error message for unexpected end of input
-// Shows the last token to give context about where more input was expected
-func ParserErrorEOF(message string, lastToken lexer.Token, sourceLines []string) string {
+// CompilerErrorEOF creates an error message for unexpected end of input
+// Shows the last position to give context about where more input was expected
+func CompilerErrorEOF(message string, lastPos Position, sourceLines []string) string {
 	var sb strings.Builder
 
 	// Error header
-	sb.WriteString(fmt.Sprintf("\n\033[1;31mParser Error:\033[0m %s\n", message))
-	sb.WriteString(fmt.Sprintf("\033[36mAfter line %d, column %d\033[0m\n\n", lastToken.Line, lastToken.EndColumn))
+	sb.WriteString(fmt.Sprintf("\n\033[1;31mCompiler Error:\033[0m %s\n", message))
+	sb.WriteString(fmt.Sprintf("\033[36mAfter line %d, column %d\033[0m\n\n", lastPos.Line, lastPos.EndColumn))
 
-	// Show the last token line if available
-	if lastToken.Line > 0 && lastToken.Line <= len(sourceLines) {
-		lineNum := lastToken.Line
+	// Show the last position line if available
+	if lastPos.Line > 0 && lastPos.Line <= len(sourceLines) {
+		lineNum := lastPos.Line
 
 		// Calculate the maximum line number width for alignment
 		contextLines := 2 // lines before and after
@@ -203,12 +203,12 @@ func ParserErrorEOF(message string, lastToken lexer.Token, sourceLines []string)
 		// Show the pointer line
 		sb.WriteString(fmt.Sprintf("  %s | ", strings.Repeat(" ", maxLineNumWidth)))
 
-		// Add spacing to point after the last token
-		if lastToken.EndColumn > 0 {
-			sb.WriteString(strings.Repeat(" ", lastToken.EndColumn))
+		// Add spacing to point after the last position
+		if lastPos.EndColumn > 0 {
+			sb.WriteString(strings.Repeat(" ", lastPos.EndColumn))
 		}
 
-		// Add the pointer after the last token
+		// Add the pointer after the last position
 		sb.WriteString("\033[1;31m^ expected more input here\033[0m\n")
 
 		// Show context lines after

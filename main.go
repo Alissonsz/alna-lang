@@ -1,6 +1,7 @@
 package main
 
 import (
+	"alna-lang/src/analyzer"
 	"alna-lang/src/lexer"
 	"alna-lang/src/parser"
 	"bufio"
@@ -39,5 +40,13 @@ func main() {
 	if *verbose {
 		fmt.Println("\n=== AST ===")
 		parser.PrintAST(ast, "", true)
+	}
+
+	analyzer := analyzer.NewAnalyzer(ast, sourceLines)
+	analyzer.Analyze()
+
+	if *verbose {
+		fmt.Println("\n=== SYMBOL TABLE ===")
+		analyzer.PrintSymbolTable()
 	}
 }

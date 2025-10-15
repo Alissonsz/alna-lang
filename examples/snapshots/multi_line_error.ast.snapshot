@@ -1,5 +1,5 @@
 Parser panicked: 
-[1;31mParser Error:[0m Unexpected token '+'
+[1;31mCompiler Error:[0m Unexpected token '+'
 [36mAt line 4, column 6[0m
 
   2 | int b = 20

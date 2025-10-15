@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"alna-lang/src/common"
 	"alna-lang/src/lexer"
 	"fmt"
 )
@@ -9,8 +10,8 @@ func NewParser(tokens []lexer.Token, sourceLines []string) *Parser {
 	return &Parser{tokens: tokens, pos: 0, ast: nil, sourceLines: sourceLines}
 }
 
-func (p *Parser) Parse() Node {
-	program := RootNode{Children: []Node{}, position: Position{Line: 1, Column: 0, EndLine: 1, EndColumn: 0}}
+func (p *Parser) Parse() RootNode {
+	program := RootNode{Children: []Node{}, position: common.Position{Line: 1, Column: 0, EndLine: 1, EndColumn: 0}}
 
 	for p.pos < len(p.tokens) {
 		program.Children = append(program.Children, p.ParseStatement())
@@ -58,32 +59,32 @@ func (p *Parser) ParseStatement() Node {
 		}
 		return p.parseIdentifier()
 	default:
-		panic(ParserError(token, fmt.Sprintf("Unexpected token '%v'", token.Value), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Unexpected token '%v'", token.Value), p.sourceLines))
 	}
 }
 
 func (p *Parser) parseParenthised() Node {
 	token := p.tokens[p.pos]
 	if token.Type != lexer.OpenParenthesis {
-		panic(ParserError(token, fmt.Sprintf("Expected '(', got %v", token.Type), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected '(', got %v", token.Type), p.sourceLines))
 	}
 
 	p.pos++
 	expression := p.parseExpression()
 
 	if p.pos >= len(p.tokens) {
-		panic(ParserErrorEOF("Unexpected end of input, expected closing parenthesis ')'", p.lastToken(), p.sourceLines))
+		panic(common.CompilerErrorEOF("Unexpected end of input, expected closing parenthesis ')'", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
 	closingToken := p.tokens[p.pos]
 	if closingToken.Type != lexer.CloseParenthesis {
-		panic(ParserError(closingToken, fmt.Sprintf("Expected closing parenthesis ')', got %v", closingToken.Type), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(closingToken), fmt.Sprintf("Expected closing parenthesis ')', got %v", closingToken.Type), p.sourceLines))
 	}
 
 	p.pos++
 	return ParenthisedNode{
 		Expression: expression,
-		position: Position{
+		position: common.Position{
 			Line:      token.Line,
 			Column:    token.StartColumn,
 			EndLine:   closingToken.Line,
@@ -94,7 +95,7 @@ func (p *Parser) parseParenthised() Node {
 
 func (p *Parser) parseExpression() Node {
 	if p.pos >= len(p.tokens) {
-		panic(ParserErrorEOF("Unexpected end of input", p.lastToken(), p.sourceLines))
+		panic(common.CompilerErrorEOF("Unexpected end of input", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
 	ast := p.parseLowerPrecedence()
@@ -116,7 +117,7 @@ func (p *Parser) parseLowerPrecedence() Node {
 			Left:     left,
 			Operator: token,
 			Right:    right,
-			position: Position{
+			position: common.Position{
 				Line:      left.Pos().Line,
 				Column:    left.Pos().Column,
 				EndLine:   right.Pos().EndLine,
@@ -134,7 +135,7 @@ func (p *Parser) parseLowerPrecedence() Node {
 
 func (p *Parser) parseHigherPrecedence() Node {
 	if p.pos >= len(p.tokens) {
-		panic(ParserErrorEOF("Unexpected end of input", p.lastToken(), p.sourceLines))
+		panic(common.CompilerErrorEOF("Unexpected end of input", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
 	token := p.tokens[p.pos]
@@ -148,7 +149,7 @@ func (p *Parser) parseHigherPrecedence() Node {
 	case lexer.OpenParenthesis:
 		left = p.parseParenthised()
 	default:
-		panic(ParserError(token, fmt.Sprintf("Unexpected token '%v'", token.Value), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Unexpected token '%v'", token.Value), p.sourceLines))
 	}
 
 	if p.pos >= len(p.tokens) {
@@ -162,7 +163,7 @@ func (p *Parser) parseHigherPrecedence() Node {
 			Left:     left,
 			Operator: token,
 			Right:    right,
-			position: Position{
+			position: common.Position{
 				Line:      left.Pos().Line,
 				Column:    left.Pos().Column,
 				EndLine:   right.Pos().EndLine,
@@ -180,17 +181,17 @@ func (p *Parser) parseHigherPrecedence() Node {
 
 func (p *Parser) parseNumber() Node {
 	if p.pos >= len(p.tokens) {
-		panic(ParserErrorEOF("Unexpected end of input", p.lastToken(), p.sourceLines))
+		panic(common.CompilerErrorEOF("Unexpected end of input", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
 	token := p.tokens[p.pos]
 	if token.Type != lexer.Number {
-		panic(ParserError(token, fmt.Sprintf("Expected number, got %v", token.Type), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected number, got %v", token.Type), p.sourceLines))
 	}
 	p.pos++
 	return NumberNode{
 		Value: token.Value,
-		position: Position{
+		position: common.Position{
 			Line:      token.Line,
 			Column:    token.StartColumn,
 			EndLine:   token.Line,
@@ -201,17 +202,17 @@ func (p *Parser) parseNumber() Node {
 
 func (p *Parser) parseIdentifier() Node {
 	if p.pos >= len(p.tokens) {
-		panic(ParserErrorEOF("Unexpected end of input", p.lastToken(), p.sourceLines))
+		panic(common.CompilerErrorEOF("Unexpected end of input", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
 	token := p.tokens[p.pos]
 	if token.Type != lexer.Identifier {
-		panic(ParserError(token, fmt.Sprintf("Expected identifier, got %v", token.Type), p.sourceLines))
+		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected identifier, got %v", token.Type), p.sourceLines))
 	}
 	p.pos++
 	return IdentifierNode{
 		Name: token.Value,
-		position: Position{
+		position: common.Position{
 			Line:      token.Line,
 			Column:    token.StartColumn,
 			EndLine:   token.Line,
