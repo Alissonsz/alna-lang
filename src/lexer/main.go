@@ -18,6 +18,11 @@ const (
 	Identifier       TokenType = "Identifier"
 	Assignment       TokenType = "Assignment"
 	DataType         TokenType = "DataType"
+	Comma            TokenType = "Comma"
+	IfKeyword        TokenType = "IfKeyword"
+	ReturnKeyword    TokenType = "ReturnKeyword"
+	OpenBracket      TokenType = "OpenBracket"
+	CloseBracket     TokenType = "CloseBracket"
 	EOF              TokenType = "EOF"
 )
 
@@ -42,6 +47,11 @@ type Lexer struct {
 	identifierChars     *regexp.Regexp
 	assignmentChars     *regexp.Regexp
 	dataType            *regexp.Regexp
+	comma               *regexp.Regexp
+	ifKeyword           *regexp.Regexp
+	returnKeyword       *regexp.Regexp
+	openBracket         *regexp.Regexp
+	closeBracket        *regexp.Regexp
 }
 
 func NewLexer(src bufio.Scanner) *Lexer {
@@ -57,7 +67,12 @@ func NewLexer(src bufio.Scanner) *Lexer {
 		closeParenthesis:    regexp.MustCompile(`^\)`),
 		identifierChars:     regexp.MustCompile(`^[_A-Za-z][_A-Za-z0-9]*`),
 		assignmentChars:     regexp.MustCompile(`^=`),
-		dataType:            regexp.MustCompile(`^int|i8|i16|i32|i64`),
+		dataType:            regexp.MustCompile(`^(int|i8|i16|i32|i64)[^_A-Za-z0-9,]`),
+		comma:               regexp.MustCompile(`^,`),
+		ifKeyword:           regexp.MustCompile(`^(if) `),
+		returnKeyword:       regexp.MustCompile(`^return`),
+		openBracket:         regexp.MustCompile(`^{`),
+		closeBracket:        regexp.MustCompile(`^}`),
 	}
 }
 
@@ -128,9 +143,24 @@ func (l *Lexer) getNextToken() Token {
 	case l.closeParenthesis.MatchString(nextSubstr):
 		value = l.closeParenthesis.FindString(nextSubstr)
 		tokenType = CloseParenthesis
+	case l.openBracket.MatchString(nextSubstr):
+		value = l.openBracket.FindString(nextSubstr)
+		tokenType = OpenBracket
+	case l.closeBracket.MatchString(nextSubstr):
+		value = l.closeBracket.FindString(nextSubstr)
+		tokenType = CloseBracket
+	case l.comma.MatchString(nextSubstr):
+		value = l.comma.FindString(nextSubstr)
+		tokenType = Comma
 	case l.assignmentChars.MatchString(nextSubstr):
 		value = l.assignmentChars.FindString(nextSubstr)
 		tokenType = Assignment
+	case l.ifKeyword.MatchString(nextSubstr):
+		value = l.ifKeyword.FindString(nextSubstr)
+		tokenType = IfKeyword
+	case l.returnKeyword.MatchString(nextSubstr):
+		value = l.returnKeyword.FindString(nextSubstr)
+		tokenType = ReturnKeyword
 	case l.dataType.MatchString(nextSubstr):
 		value = l.dataType.FindString(nextSubstr)
 		tokenType = DataType

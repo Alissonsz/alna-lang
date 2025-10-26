@@ -1,0 +1,5 @@
+int if_function(arg1 i8, arg2 i16) {
+  if arg1 {
+    return 0
+  }
+}
