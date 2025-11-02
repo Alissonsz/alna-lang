@@ -20,6 +20,7 @@ const (
 	DataType         TokenType = "DataType"
 	Comma            TokenType = "Comma"
 	IfKeyword        TokenType = "IfKeyword"
+	ElseKeyword      TokenType = "ElseKeyword"
 	ReturnKeyword    TokenType = "ReturnKeyword"
 	BooleanOperator  TokenType = "BooleanOperator"
 	OpenBracket      TokenType = "OpenBracket"
@@ -50,6 +51,7 @@ type Lexer struct {
 	dataType            *regexp.Regexp
 	comma               *regexp.Regexp
 	ifKeyword           *regexp.Regexp
+	elseKeyword         *regexp.Regexp
 	returnKeyword       *regexp.Regexp
 	booleanOperator     *regexp.Regexp
 	openBracket         *regexp.Regexp
@@ -72,6 +74,7 @@ func NewLexer(src bufio.Scanner) *Lexer {
 		dataType:            regexp.MustCompile(`^(int|i8|i16|i32|i64)[^_A-Za-z0-9]`),
 		comma:               regexp.MustCompile(`^,`),
 		ifKeyword:           regexp.MustCompile(`^(if)[^_A-Za-z0-9]`),
+		elseKeyword:         regexp.MustCompile(`^(else)[^_A-Za-z0-9]`),
 		returnKeyword:       regexp.MustCompile(`^(return)[^_A-Za-z0-9]`),
 		booleanOperator:     regexp.MustCompile(`^(true|false)[^_A-Za-z0-9]`),
 		openBracket:         regexp.MustCompile(`^{`),
@@ -169,6 +172,9 @@ func (l *Lexer) getNextToken() Token {
 	case l.ifKeyword.MatchString(nextSubstr):
 		value = getStringMatch(l.ifKeyword, nextSubstr)
 		tokenType = IfKeyword
+	case l.elseKeyword.MatchString(nextSubstr):
+		value = getStringMatch(l.elseKeyword, nextSubstr)
+		tokenType = ElseKeyword
 	case l.returnKeyword.MatchString(nextSubstr):
 		value = getStringMatch(l.returnKeyword, nextSubstr)
 		tokenType = ReturnKeyword
