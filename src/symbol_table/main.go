@@ -1,4 +1,4 @@
-package analyzer
+package symboltable
 
 import "fmt"
 
@@ -9,26 +9,29 @@ type VariableInfo struct {
 }
 
 type SymbolTable struct {
-	parent  *SymbolTable
+	Parent  *SymbolTable
 	symbols map[string]VariableInfo
 }
 
 func NewSymbolTable(parent *SymbolTable) *SymbolTable {
-	return &SymbolTable{parent: parent, symbols: make(map[string]VariableInfo)}
+	return &SymbolTable{Parent: parent, symbols: make(map[string]VariableInfo)}
 }
 
 func (st *SymbolTable) Lookup(name string) (VariableInfo, bool) {
 	if info, exists := st.symbols[name]; exists {
 		return info, true
 	}
-	if st.parent != nil {
-		return st.parent.Lookup(name)
+
+	fmt.Println("Looking up in parent symbol table")
+	if st.Parent != nil {
+		return st.Parent.Lookup(name)
 	}
 	return VariableInfo{}, false
 }
 
 func (st *SymbolTable) Insert(name string, varType string) error {
 	if _, exists := st.symbols[name]; exists {
+
 		return fmt.Errorf("variable '%s' already declared in this scope", name)
 	}
 	st.symbols[name] = VariableInfo{Name: name, Type: varType, Index: len(st.symbols)}
@@ -39,8 +42,8 @@ func (st *SymbolTable) Print() {
 	for name, info := range st.symbols {
 		println("Variable:", name, "Type:", info.Type)
 	}
-	if st.parent != nil {
+	if st.Parent != nil {
 		println("Parent Symbol Table:")
-		st.parent.Print()
+		st.Parent.Print()
 	}
 }

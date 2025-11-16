@@ -1,0 +1,14 @@
+int a = 5
+
+if a > 10 {
+  int c = 20
+  int d = 10
+  c + d
+} else {
+  int c = 0
+  c + 6
+}
+
+if a > 15 {
+  a = 40
+}

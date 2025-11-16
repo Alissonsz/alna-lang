@@ -3,6 +3,7 @@ package parser
 import (
 	"alna-lang/src/common"
 	"alna-lang/src/lexer"
+	symboltable "alna-lang/src/symbol_table"
 )
 
 type Parser struct {
@@ -28,6 +29,19 @@ func (r RootNode) NodeType() string {
 
 func (r RootNode) Pos() common.Position {
 	return r.position
+}
+
+type BooleanNode struct {
+	Value    bool
+	position common.Position
+}
+
+func (b BooleanNode) NodeType() string {
+	return "BooleanNode"
+}
+
+func (b BooleanNode) Pos() common.Position {
+	return b.position
 }
 
 type NumberNode struct {
@@ -71,49 +85,6 @@ func (b BinaryOpNode) Pos() common.Position {
 	return b.position
 }
 
-type HighPrecedenceNode struct {
-	Left     Node
-	Operator lexer.Token
-	Right    Node
-	position common.Position
-}
-
-func (h HighPrecedenceNode) NodeType() string {
-	return "HighPrecedenceNode"
-}
-
-func (h HighPrecedenceNode) Pos() common.Position {
-	return h.position
-}
-
-type LowPrecedenceNode struct {
-	Left     Node
-	Operator lexer.Token
-	Right    Node
-	position common.Position
-}
-
-func (l LowPrecedenceNode) NodeType() string {
-	return "LowPrecedenceNode"
-}
-
-func (l LowPrecedenceNode) Pos() common.Position {
-	return l.position
-}
-
-type ParenthisedNode struct {
-	Expression Node
-	position   common.Position
-}
-
-func (p ParenthisedNode) NodeType() string {
-	return "ParenthisedNode"
-}
-
-func (p ParenthisedNode) Pos() common.Position {
-	return p.position
-}
-
 type AssignmentNode struct {
 	Left     Node
 	Right    Node
@@ -141,4 +112,33 @@ func (v VariableDeclarationNode) NodeType() string {
 
 func (v VariableDeclarationNode) Pos() common.Position {
 	return v.position
+}
+
+type BlockNode struct {
+	Statements  []Node
+	SymbolTable *symboltable.SymbolTable
+	position    common.Position
+}
+
+func (b BlockNode) NodeType() string {
+	return "BlockNode"
+}
+
+func (b BlockNode) Pos() common.Position {
+	return b.position
+}
+
+type IfStatementNode struct {
+	Condition  Node
+	ThenBranch Node
+	ElseBranch Node
+	position   common.Position
+}
+
+func (i IfStatementNode) NodeType() string {
+	return "IfExpressionNode"
+}
+
+func (i IfStatementNode) Pos() common.Position {
+	return i.position
 }

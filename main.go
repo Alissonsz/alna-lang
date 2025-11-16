@@ -2,6 +2,8 @@ package main
 
 import (
 	"alna-lang/src/analyzer"
+	"alna-lang/src/codegen"
+	"alna-lang/src/disassembler"
 	"alna-lang/src/lexer"
 	"alna-lang/src/parser"
 	"bufio"
@@ -12,6 +14,7 @@ import (
 )
 
 var verbose = flag.Bool("verbose", false, "print tokens and AST during compilation")
+var disassemble = flag.Bool("disassemble", false, "disassemble bytecode into human-readable format")
 
 func main() {
 	flag.Parse()
@@ -49,4 +52,19 @@ func main() {
 		fmt.Println("\n=== SYMBOL TABLE ===")
 		analyzer.PrintSymbolTable()
 	}
+
+	codegen := codegen.NewCodeGenerator(ast, sourceLines, analyzer.SymbolTable)
+	codegen.Generate()
+
+	if *disassemble {
+		fmt.Println()
+		fmt.Print(disassembler.Disassemble(codegen.Bytecode))
+	} else {
+		fmt.Println("\n=== BYTECODE ===")
+		for i, b := range codegen.Bytecode {
+			fmt.Printf("%04d: 0x%02X\n", i, b)
+		}
+	}
+
+	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
 }
