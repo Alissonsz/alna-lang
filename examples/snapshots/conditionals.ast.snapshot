@@ -1,0 +1,26 @@
+Root
+VariableDeclaration
+│   ├── Name: a
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 20
+VariableDeclaration
+│   ├── Name: b
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 10
+IfStatement
+│   ├── Condition:
+│   │   ├── BinaryOp (>)
+│   │   │   ├── Identifier: a
+│   │   │   └── Number: 10
+│   ├── ThenBlock:
+│   │   ├── Block
+│   │   │   └── FunctionCall: __write
+│   │   │       └── Identifier: a
+│   └── ElseBlock:
+VariableDeclaration
+    ├── Name: arisu
+    ├── Type: int
+    └── Initializer:
+        └── Number: 10

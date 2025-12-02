@@ -1,0 +1,52 @@
+==================
+Simple if statement
+==================
+
+if a > 10 {
+  int c = 20
+}
+
+---
+
+(source_file
+  (if_statement
+    condition: (binary_expression
+      left: (identifier)
+      operator: ">"
+      right: (number))
+    consequence: (block
+      (variable_declaration
+        type: (type)
+        name: (identifier)
+        value: (number)))))
+
+==================
+If-else statement
+==================
+
+if a > 10 {
+  int c = 20
+} else {
+  a = a + 6
+}
+
+---
+
+(source_file
+  (if_statement
+    condition: (binary_expression
+      left: (identifier)
+      operator: ">"
+      right: (number))
+    consequence: (block
+      (variable_declaration
+        type: (type)
+        name: (identifier)
+        value: (number)))
+    alternative: (block
+      (assignment
+        left: (identifier)
+        right: (binary_expression
+          left: (identifier)
+          operator: "+"
+          right: (number))))))

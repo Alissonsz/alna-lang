@@ -1,0 +1,7 @@
+build/
+node_modules/
+src/
+*.so
+*.dylib
+*.dll
+package-lock.json

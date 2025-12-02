@@ -1,11 +1,14 @@
 package main
 
 import (
-	"alna-lang/src/analyzer"
-	"alna-lang/src/codegen"
-	"alna-lang/src/disassembler"
-	"alna-lang/src/lexer"
-	"alna-lang/src/parser"
+	"alna-lang/internal/analyzer"
+	"alna-lang/internal/ast"
+	"alna-lang/internal/codegen"
+	"alna-lang/internal/disassembler"
+	"alna-lang/internal/lexer"
+	"alna-lang/internal/logger"
+	"alna-lang/internal/parser"
+	"alna-lang/internal/vm"
 	"bufio"
 	"flag"
 	"fmt"
@@ -24,28 +27,37 @@ func main() {
 		log.Fatalf("Please provide the source code file path as an argument.")
 	}
 
+	// Create logger based on verbose flag
+	var logLevel logger.LogLevel
+	if *verbose {
+		logLevel = logger.LevelDebug
+	} else {
+		logLevel = logger.LevelInfo
+	}
+	lgr := logger.New(logLevel, *verbose)
+
 	srcCode, err := os.Open(args[0])
 	if err != nil {
 		log.Fatalf("Error reading file: %v", err.Error())
 	}
 
 	scanner := bufio.NewScanner(srcCode)
-	lex := lexer.NewLexer(*scanner)
+	lex := lexer.NewLexer(*scanner, lgr)
 
-	tokens, sourceLines, err := lex.Analyze(*verbose)
+	tokens, sourceLines, err := lex.Analyze()
 	if err != nil {
 		log.Panicf("Lexical analysis error: %v", err.Error())
 	}
 
-	p := parser.NewParser(tokens, sourceLines)
-	ast := p.Parse()
+	p := parser.NewParser(tokens, sourceLines, lgr)
+	tree := p.Parse()
 
 	if *verbose {
 		fmt.Println("\n=== AST ===")
-		parser.PrintAST(ast, "", true)
+		ast.PrintAST(tree, "", true)
 	}
 
-	analyzer := analyzer.NewAnalyzer(ast, sourceLines)
+	analyzer := analyzer.NewAnalyzer(&tree, sourceLines, lgr)
 	analyzer.Analyze()
 
 	if *verbose {
@@ -53,18 +65,30 @@ func main() {
 		analyzer.PrintSymbolTable()
 	}
 
-	codegen := codegen.NewCodeGenerator(ast, sourceLines, analyzer.SymbolTable)
+	codegen := codegen.NewCodeGenerator(tree, sourceLines, analyzer.SymbolTable, lgr)
 	codegen.Generate()
 
 	if *disassemble {
 		fmt.Println()
 		fmt.Print(disassembler.Disassemble(codegen.Bytecode))
-	} else {
-		fmt.Println("\n=== BYTECODE ===")
+	} else if *verbose {
+		lgr.Println("\n=== BYTECODE ===")
 		for i, b := range codegen.Bytecode {
-			fmt.Printf("%04d: 0x%02X\n", i, b)
+			lgr.Print("%04d: 0x%02X\n", i, b)
 		}
 	}
 
 	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
+
+	// Debug mode is disabled for now (TUI requires interactive terminal)
+	vm := vm.NewVM(codegen.Bytecode, sourceLines, false, lgr)
+	err = vm.CheckHeader()
+	if err != nil {
+		log.Panicf("VM header check failed: %v", err.Error())
+	}
+
+	err = vm.Run()
+	if err != nil {
+		log.Panicf("VM runtime error: %v", err.Error())
+	}
 }

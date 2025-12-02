@@ -1,0 +1,9 @@
+Parser panicked: 
+[1;31mCompiler Error:[0m Unexpected token 'return'
+[36mAt line 2, column 2[0m
+
+  1 | if (sabrina && alisson) == true {
+  2 |   return 0
+    |   [1;31m^^^^^^[0m
+  3 | } else if sabrina < alisson {
+  4 |   return 1

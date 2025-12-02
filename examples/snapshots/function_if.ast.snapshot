@@ -1,0 +1,8 @@
+Parser panicked: 
+[1;31mCompiler Error:[0m Expected closing parenthesis ')', got DataType
+[36mAt line 1, column 21[0m
+
+  1 | int if_function(arg1 i8, arg2 i16) {
+    |                      [1;31m^^[0m
+  2 |   if arg1 {
+  3 |     return 0

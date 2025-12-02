@@ -1,0 +1,29 @@
+{
+  "name": "alna-language",
+  "displayName": "Alna Language Support",
+  "description": "Syntax highlighting for Alna programming language",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "alna",
+        "aliases": ["Alna", "alna"],
+        "extensions": [".alna"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "alna",
+        "scopeName": "source.alna",
+        "path": "./syntaxes/alna.tmLanguage.json"
+      }
+    ]
+  }
+}

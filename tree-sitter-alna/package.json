@@ -1,0 +1,31 @@
+{
+  "name": "tree-sitter-alna",
+  "version": "0.0.1",
+  "description": "Alna grammar for tree-sitter",
+  "main": "bindings/node",
+  "keywords": [
+    "parser",
+    "tree-sitter",
+    "alna"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "nan": "^2.17.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8"
+  },
+  "scripts": {
+    "build": "tree-sitter generate && node-gyp build",
+    "test": "tree-sitter test"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.alna",
+      "file-types": [
+        "alna"
+      ]
+    }
+  ]
+}

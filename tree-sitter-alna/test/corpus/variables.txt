@@ -1,0 +1,62 @@
+==================
+Simple variable declaration
+==================
+
+int x = 10
+
+---
+
+(source_file
+  (variable_declaration
+    type: (type)
+    name: (identifier)
+    value: (number)))
+
+==================
+Multiple variable declarations
+==================
+
+int x = 10
+int y = 20
+
+---
+
+(source_file
+  (variable_declaration
+    type: (type)
+    name: (identifier)
+    value: (number))
+  (variable_declaration
+    type: (type)
+    name: (identifier)
+    value: (number)))
+
+==================
+Variable with expression
+==================
+
+int result = x * y
+
+---
+
+(source_file
+  (variable_declaration
+    type: (type)
+    name: (identifier)
+    value: (binary_expression
+      left: (identifier)
+      operator: "*"
+      right: (identifier))))
+
+==================
+Assignment
+==================
+
+a = 5
+
+---
+
+(source_file
+  (assignment
+    left: (identifier)
+    right: (number)))
