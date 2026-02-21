@@ -18,7 +18,7 @@ import (
 
 var verbose = flag.Bool("verbose", false, "print tokens and AST during compilation")
 var disassemble = flag.Bool("disassemble", false, "disassemble bytecode into human-readable format")
-var debug = flag.Bool("debug", false, "run with interactive TUI debugger")
+var debug = flag.Bool("g", false, "run with TUI debugger (generates .alnbc.debug file)")
 
 func main() {
 	flag.Parse()
@@ -67,6 +67,9 @@ func main() {
 	}
 
 	codegen := codegen.NewCodeGenerator(tree, sourceLines, analyzer.SymbolTable, lgr)
+	if *debug {
+		codegen.SetDebugMode(args[0])
+	}
 	codegen.Generate()
 
 	if *disassemble {
@@ -81,7 +84,20 @@ func main() {
 
 	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
 
+	if *debug {
+		if err := codegen.WriteDebugFile("out.alnbc.debug"); err != nil {
+			log.Fatalf("Failed to write debug file: %v", err)
+		}
+	}
+
 	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr)
+
+	if *debug {
+		if err := vm.LoadDebugFile("out.alnbc.debug"); err != nil {
+			log.Fatalf("Failed to load debug file: %v", err)
+		}
+	}
+
 	err = vm.CheckHeader()
 	if err != nil {
 		log.Panicf("VM header check failed: %v", err.Error())

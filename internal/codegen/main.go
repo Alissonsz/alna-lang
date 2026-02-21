@@ -6,6 +6,8 @@ import (
 	"alna-lang/internal/logger"
 	"alna-lang/internal/opcode"
 	symboltable "alna-lang/internal/symbol_table"
+	"encoding/json"
+	"os"
 	"strconv"
 )
 
@@ -22,23 +24,69 @@ type VariableDefinition struct {
 	Index int
 }
 
+type SourceMapEntry struct {
+	Pc        int    `json:"pc"`
+	Line      int    `json:"line"`
+	Column    int    `json:"column"`
+	EndColumn int    `json:"endColumn"`
+	VarName   string `json:"varName,omitempty"`
+}
+
+type VariableInfo struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+}
+
+type FunctionInfo struct {
+	ConstantIndex int    `json:"constantIndex"`
+	Name          string `json:"name"`
+}
+
+type DebugInfo struct {
+	Version     int              `json:"version"`
+	SourceFile  string           `json:"sourceFile"`
+	SourceLines []string         `json:"sourceLines"`
+	Variables   []VariableInfo   `json:"variables"`
+	Functions   []FunctionInfo   `json:"functions"`
+	SourceMap   []SourceMapEntry `json:"sourceMap"`
+}
+
 type CodeGenerator struct {
-	ast          ast.RootNode
-	sourceLines  []string
-	symbolTable  *symboltable.SymbolTable
-	constants    []ConstantDefinition
-	constantMap  map[interface{}]int
-	variables    []interface{}
-	variablesMap map[string]int
-	functions    []builtins.Function
-	functionsMap map[string]int
-	mainBytecode []byte
-	Bytecode     []byte
-	logger       *logger.Logger
+	ast              ast.RootNode
+	sourceLines      []string
+	sourceFile       string
+	symbolTable      *symboltable.SymbolTable
+	constants        []ConstantDefinition
+	constantMap      map[interface{}]int
+	variables        []interface{}
+	variablesMap     map[string]int
+	functions        []builtins.Function
+	functionsMap     map[string]int
+	mainBytecode     []byte
+	Bytecode         []byte
+	logger           *logger.Logger
+	debugMode        bool
+	debugInfo        *DebugInfo
+	currentSourcePos ast.Node
+	compiledFuncs    []FunctionInfo
+	scopeDepth       int
 }
 
 func NewCodeGenerator(tree ast.RootNode, srcLines []string, st *symboltable.SymbolTable, lgr *logger.Logger) *CodeGenerator {
 	return &CodeGenerator{ast: tree, sourceLines: srcLines, symbolTable: st, constantMap: make(map[interface{}]int), logger: lgr}
+}
+
+func (cg *CodeGenerator) SetDebugMode(sourceFile string) {
+	cg.debugMode = true
+	cg.sourceFile = sourceFile
+	cg.debugInfo = &DebugInfo{
+		Version:     1,
+		SourceFile:  sourceFile,
+		SourceLines: cg.sourceLines,
+		Variables:   []VariableInfo{},
+		Functions:   []FunctionInfo{},
+		SourceMap:   []SourceMapEntry{},
+	}
 }
 
 func (cg *CodeGenerator) AddConstant(typeId int, value interface{}) int {
@@ -66,6 +114,13 @@ func (cg *CodeGenerator) AddVariable(name string) int {
 	cg.variablesMap[name] = len(cg.variables)
 	idx := len(cg.variables)
 	cg.variables = append(cg.variables, nil)
+
+	if cg.debugMode && cg.scopeDepth == 0 {
+		cg.debugInfo.Variables = append(cg.debugInfo.Variables, VariableInfo{
+			Index: idx,
+			Name:  name,
+		})
+	}
 	return idx
 }
 
@@ -113,6 +168,13 @@ func (cg *CodeGenerator) writeConstantsPool() {
 }
 
 func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.SymbolTable) string {
+	if cg.debugMode && stmt != nil {
+		if block, ok := stmt.(*ast.BlockNode); ok && block == nil {
+		} else {
+			cg.setCurrentSourcePos(stmt)
+		}
+	}
+
 	switch node := stmt.(type) {
 	case ast.VariableDeclarationNode:
 		return cg.generateVariableDeclaration(node, st)
@@ -122,8 +184,12 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 		switch node.Left.(type) {
 		case ast.IdentifierNode:
 			varName = node.Left.(ast.IdentifierNode).Name
-
-			cg.emit(opcode.STORE_VAR, cg.variablesMap[varName])
+			if cg.debugMode {
+				cg.setCurrentSourcePos(node)
+				cg.emitWithVarName(opcode.STORE_VAR, varName, cg.variablesMap[varName])
+			} else {
+				cg.emit(opcode.STORE_VAR, cg.variablesMap[varName])
+			}
 		default:
 			cg.logger.Error("Invalid assignment target at position %+v", node.Left.Pos())
 		}
@@ -131,6 +197,9 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 		cg.generateExpression(node, st)
 	case ast.IfStatementNode:
 		cg.generateExpression(node.Condition, st)
+		if cg.debugMode {
+			cg.setCurrentSourcePos(node)
+		}
 		cg.emit(opcode.JUMP_IF_FALSE, 0)
 		thenStart := len(cg.mainBytecode)
 		cg.generateStatement(node.ThenBranch, st)
@@ -147,24 +216,34 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 			return ""
 		}
 
+		varsBeforeScope := len(cg.variables)
+		cg.scopeDepth++
 		scopeVarIndex := len(cg.variables) - 1
 		cg.emit(opcode.START_SCOPE, scopeVarIndex)
 		for _, statement := range node.Statements {
 			cg.generateStatement(statement, node.SymbolTable)
 		}
 		cg.emit(opcode.END_SCOPE)
-		cg.variables = cg.variables[:scopeVarIndex+1]
+		cg.variables = cg.variables[:varsBeforeScope]
+		cg.scopeDepth--
 
 	case ast.BlockNode:
 		cg.logger.Debug("Entering new block scope in codegen")
+		varsBeforeScope := len(cg.variables)
+		cg.scopeDepth++
 		cg.emit(opcode.START_SCOPE, len(cg.variables)-1)
 		for _, statement := range node.Statements {
 			cg.generateStatement(statement, node.SymbolTable)
 		}
 		cg.emit(opcode.END_SCOPE)
+		cg.variables = cg.variables[:varsBeforeScope]
+		cg.scopeDepth--
 	case ast.FunctionCallNode:
 		for _, arg := range node.Arguments {
 			cg.generateExpression(arg, st)
+		}
+		if cg.debugMode {
+			cg.setCurrentSourcePos(node)
 		}
 		if fnIdx, exists := cg.functionsMap[node.Name]; exists {
 			cg.emit(opcode.CALL, fnIdx)
@@ -183,9 +262,14 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 func (cg *CodeGenerator) generateFunctionDeclaration(node ast.FunctionDeclarationNode, st *symboltable.SymbolTable) string {
 	cg.logger.Debug("Generating function declaration for '%s'", node.Name)
 
-	// Track the bytecode position where function body starts
 	functionStartPos := len(cg.mainBytecode)
+	var sourceMapStartLen int
+	if cg.debugMode {
+		sourceMapStartLen = len(cg.debugInfo.SourceMap)
+	}
 
+	varsBeforeScope := len(cg.variables)
+	cg.scopeDepth++
 	scopeVarIndex := len(cg.variables) - 1
 	cg.emit(opcode.START_SCOPE, scopeVarIndex)
 
@@ -199,13 +283,24 @@ func (cg *CodeGenerator) generateFunctionDeclaration(node ast.FunctionDeclaratio
 		cg.generateStatement(statement, node.Body.SymbolTable)
 	}
 	cg.emit(opcode.END_SCOPE)
+	cg.scopeDepth--
+	cg.variables = cg.variables[:varsBeforeScope]
 
-	// Extract the function instructions from the main bytecode
 	instructions := cg.mainBytecode[functionStartPos:]
 	cg.mainBytecode = cg.mainBytecode[:functionStartPos]
 
-	// Add function to constants pool
-	cg.AddConstant(FunctionTypeId, instructions)
+	if cg.debugMode {
+		cg.debugInfo.SourceMap = cg.debugInfo.SourceMap[:sourceMapStartLen]
+	}
+
+	constIdx := cg.AddConstant(FunctionTypeId, instructions)
+
+	if cg.debugMode {
+		cg.compiledFuncs = append(cg.compiledFuncs, FunctionInfo{
+			ConstantIndex: constIdx,
+			Name:          node.Name,
+		})
+	}
 
 	return ""
 }
@@ -217,11 +312,20 @@ func (cg *CodeGenerator) generateVariableDeclaration(node ast.VariableDeclaratio
 		cg.generateExpression(node.Initializer, st)
 	}
 
-	cg.emit(opcode.STORE_VAR, varIdx)
+	if cg.debugMode {
+		cg.setCurrentSourcePos(node)
+		cg.emitWithVarName(opcode.STORE_VAR, node.Name, varIdx)
+	} else {
+		cg.emit(opcode.STORE_VAR, varIdx)
+	}
 	return ""
 }
 
 func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.SymbolTable) string {
+	if cg.debugMode && expr != nil {
+		cg.setCurrentSourcePos(expr)
+	}
+
 	switch node := expr.(type) {
 	case ast.NumberNode:
 		intValue, err := strconv.ParseInt(node.Value.(string), 10, 8)
@@ -236,13 +340,22 @@ func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.Symbo
 		cg.emit(opcode.LOAD_CONST, constIdx)
 	case ast.IdentifierNode:
 		if varIdx, exists := cg.variablesMap[node.Name]; exists {
-			cg.emit(opcode.LOAD_VAR, varIdx)
+			if cg.debugMode {
+				cg.emitWithVarName(opcode.LOAD_VAR, node.Name, varIdx)
+			} else {
+				cg.emit(opcode.LOAD_VAR, varIdx)
+			}
 		} else {
 			cg.logger.Error("Undefined variable '%s' at position %+v", node.Name, node.Pos())
 		}
 	case ast.BinaryOpNode:
 		cg.generateExpression(node.Left, st)
 		cg.generateExpression(node.Right, st)
+
+		if cg.debugMode {
+			cg.setCurrentSourcePos(node)
+		}
+
 		op := node.Operator.Value
 		switch op {
 		case "*":
@@ -270,7 +383,13 @@ func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.Symbo
 }
 
 func (cg *CodeGenerator) emit(op opcode.Opcode, operands ...int) {
+	cg.emitWithVarName(op, "", operands...)
+}
+
+func (cg *CodeGenerator) emitWithVarName(op opcode.Opcode, varName string, operands ...int) {
 	cg.logger.Debug("Emitting opcode: %d with operands %v", op, operands)
+
+	pc := len(cg.mainBytecode)
 
 	switch op {
 	case opcode.LOAD_CONST, opcode.STORE_VAR, opcode.LOAD_VAR:
@@ -286,4 +405,39 @@ func (cg *CodeGenerator) emit(op opcode.Opcode, operands ...int) {
 	default:
 		cg.logger.Error("Unknown opcode to emit: %d", op)
 	}
+
+	if cg.debugMode && cg.currentSourcePos != nil {
+		pos := cg.currentSourcePos.Pos()
+		if pos.Line > 0 && pos.Column >= 0 {
+			entry := SourceMapEntry{
+				Pc:        pc,
+				Line:      pos.Line - 1,
+				Column:    pos.Column,
+				EndColumn: pos.EndColumn,
+			}
+			if varName != "" {
+				entry.VarName = varName
+			}
+			cg.debugInfo.SourceMap = append(cg.debugInfo.SourceMap, entry)
+		}
+	}
+}
+
+func (cg *CodeGenerator) setCurrentSourcePos(node ast.Node) {
+	cg.currentSourcePos = node
+}
+
+func (cg *CodeGenerator) WriteDebugFile(outputPath string) error {
+	if !cg.debugMode || cg.debugInfo == nil {
+		return nil
+	}
+
+	cg.debugInfo.Functions = cg.compiledFuncs
+
+	data, err := json.MarshalIndent(cg.debugInfo, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(outputPath, data, 0644)
 }

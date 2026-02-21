@@ -5,20 +5,59 @@ import (
 	"alna-lang/internal/codegen"
 	"alna-lang/internal/logger"
 	"alna-lang/internal/opcode"
+	"encoding/json"
 	"fmt"
+	"os"
 )
 
+type DebugInfo struct {
+	Version     int              `json:"version"`
+	SourceFile  string           `json:"sourceFile"`
+	SourceLines []string         `json:"sourceLines"`
+	Variables   []VariableInfo   `json:"variables"`
+	Functions   []FunctionInfo   `json:"functions"`
+	SourceMap   []SourceMapEntry `json:"sourceMap"`
+}
+
+type VariableInfo struct {
+	Index int    `json:"index"`
+	Name  string `json:"name"`
+}
+
+type FunctionInfo struct {
+	ConstantIndex int    `json:"constantIndex"`
+	Name          string `json:"name"`
+}
+
+type SourceMapEntry struct {
+	Pc        int    `json:"pc"`
+	Line      int    `json:"line"`
+	Column    int    `json:"column"`
+	EndColumn int    `json:"endColumn"`
+	VarName   string `json:"varName,omitempty"`
+}
+
+type SourcePosition struct {
+	Line      int
+	Column    int
+	EndColumn int
+	VarName   string
+}
+
 type VM struct {
-	program   []byte
-	rawCode   []string
-	Pc        int
-	PcOffset  int
-	stack     []any
-	constants []any
-	Variables []any
-	Functions []FunctionDefinition
-	debugMode bool
-	logger    *logger.Logger
+	program       []byte
+	rawCode       []string
+	Pc            int
+	PcOffset      int
+	stack         []any
+	constants     []any
+	Variables     []any
+	Functions     []FunctionDefinition
+	debugMode     bool
+	logger        *logger.Logger
+	debugInfo     *DebugInfo
+	VariableNames map[int]string
+	SourceMap     map[int]SourcePosition
 }
 
 type FunctionType int
@@ -36,14 +75,47 @@ type FunctionDefinition struct {
 }
 
 func NewVM(program []byte, code []string, debugMode bool, lgr *logger.Logger) *VM {
-	return &VM{
-		program:   program,
-		rawCode:   code,
-		Pc:        0,
-		stack:     []any{},
-		debugMode: debugMode,
-		logger:    lgr,
+	vm := &VM{
+		program:       program,
+		rawCode:       code,
+		Pc:            0,
+		stack:         []any{},
+		debugMode:     debugMode,
+		logger:        lgr,
+		VariableNames: make(map[int]string),
+		SourceMap:     make(map[int]SourcePosition),
 	}
+	return vm
+}
+
+func (vm *VM) LoadDebugFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read debug file: %w", err)
+	}
+
+	var debugInfo DebugInfo
+	if err := json.Unmarshal(data, &debugInfo); err != nil {
+		return fmt.Errorf("failed to parse debug file: %w", err)
+	}
+
+	vm.debugInfo = &debugInfo
+	vm.rawCode = debugInfo.SourceLines
+
+	for _, v := range debugInfo.Variables {
+		vm.VariableNames[v.Index] = v.Name
+	}
+
+	for _, entry := range debugInfo.SourceMap {
+		vm.SourceMap[entry.Pc] = SourcePosition{
+			Line:      entry.Line,
+			Column:    entry.Column,
+			EndColumn: entry.EndColumn,
+			VarName:   entry.VarName,
+		}
+	}
+
+	return nil
 }
 
 func (vm *VM) CheckHeader() error {
@@ -65,6 +137,13 @@ func (vm *VM) Run() error {
 	vm.constants = make([]any, int(costantsCount))
 	vm.registerBuiltins()
 
+	compiledFuncNames := make(map[int]string)
+	if vm.debugInfo != nil {
+		for _, fn := range vm.debugInfo.Functions {
+			compiledFuncNames[fn.ConstantIndex] = fn.Name
+		}
+	}
+
 	for i := 0; i < int(costantsCount); i++ {
 		typeId := vm.readByte()
 		switch typeId {
@@ -77,8 +156,14 @@ func (vm *VM) Run() error {
 		case codegen.FunctionTypeId:
 			instructionsCount := vm.readByte()
 			functionInstructions := vm.readBytes(int(instructionsCount))
+
+			funcName := fmt.Sprintf("func_%d", i)
+			if name, ok := compiledFuncNames[i]; ok {
+				funcName = name
+			}
+
 			function := FunctionDefinition{
-				Name:           fmt.Sprintf("func_%d", i),
+				Name:           funcName,
 				Implementation: nil,
 				Type:           FunctionTypeCompiled,
 				Instructions:   functionInstructions,

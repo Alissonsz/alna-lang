@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "sourceFile": "examples/conditionals.alna",
+  "sourceLines": [
+    "int a = 20",
+    "int b = 10",
+    "",
+    "int games(int x, int y) {",
+    "   x + y",
+    "}",
+    "",
+    "if a \u003e 10 {",
+    "  int c = 30",
+    "  __write(c)",
+    "} ",
+    "",
+    "int arisu = 10"
+  ],
+  "variables": [
+    {
+      "index": 0,
+      "name": "a"
+    },
+    {
+      "index": 1,
+      "name": "b"
+    },
+    {
+      "index": 2,
+      "name": "arisu"
+    }
+  ],
+  "functions": [
+    {
+      "constantIndex": 2,
+      "name": "games"
+    }
+  ],
+  "sourceMap": [
+    {
+      "pc": 0,
+      "line": 0,
+      "column": 8,
+      "endColumn": 10
+    },
+    {
+      "pc": 2,
+      "line": 0,
+      "column": 0,
+      "endColumn": 10,
+      "varName": "a"
+    },
+    {
+      "pc": 4,
+      "line": 1,
+      "column": 8,
+      "endColumn": 10
+    },
+    {
+      "pc": 6,
+      "line": 1,
+      "column": 0,
+      "endColumn": 10,
+      "varName": "b"
+    },
+    {
+      "pc": 8,
+      "line": 7,
+      "column": 3,
+      "endColumn": 4,
+      "varName": "a"
+    },
+    {
+      "pc": 10,
+      "line": 7,
+      "column": 7,
+      "endColumn": 9
+    },
+    {
+      "pc": 12,
+      "line": 7,
+      "column": 3,
+      "endColumn": 9
+    },
+    {
+      "pc": 13,
+      "line": 7,
+      "column": 0,
+      "endColumn": 12
+    },
+    {
+      "pc": 15,
+      "line": 8,
+      "column": 2,
+      "endColumn": 12
+    },
+    {
+      "pc": 17,
+      "line": 8,
+      "column": 10,
+      "endColumn": 12
+    },
+    {
+      "pc": 19,
+      "line": 8,
+      "column": 2,
+      "endColumn": 12,
+      "varName": "c"
+    },
+    {
+      "pc": 21,
+      "line": 9,
+      "column": 10,
+      "endColumn": 11,
+      "varName": "c"
+    },
+    {
+      "pc": 23,
+      "line": 9,
+      "column": 2,
+      "endColumn": 12
+    },
+    {
+      "pc": 25,
+      "line": 9,
+      "column": 2,
+      "endColumn": 12
+    },
+    {
+      "pc": 26,
+      "line": 12,
+      "column": 12,
+      "endColumn": 14
+    },
+    {
+      "pc": 28,
+      "line": 12,
+      "column": 0,
+      "endColumn": 14,
+      "varName": "arisu"
+    }
+  ]
+}

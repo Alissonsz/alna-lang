@@ -6,7 +6,8 @@ int games(int x, int y) {
 }
 
 if a > 10 {
-  __write(a)
+  int c = 30
+  __write(c)
 } 
 
 int arisu = 10
