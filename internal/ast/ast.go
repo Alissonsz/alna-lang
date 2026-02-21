@@ -147,6 +147,29 @@ func (i IfStatementNode) Pos() common.Position {
 	return i.Position
 }
 
+// Parameter represents a function parameter
+type FunctionParam struct {
+	Name string
+	Type string
+}
+
+// FunctionDeclarationNode represents a function declaration
+type FunctionDeclarationNode struct {
+	Name       string
+	Parameters []FunctionParam
+	ReturnType string
+	Body       BlockNode
+	Position   common.Position
+}
+
+func (f FunctionDeclarationNode) NodeType() string {
+	return "FunctionDeclarationNode"
+}
+
+func (f FunctionDeclarationNode) Pos() common.Position {
+	return common.Position{}
+}
+
 // FunctionCallNode represents a function call
 type FunctionCallNode struct {
 	Name      string

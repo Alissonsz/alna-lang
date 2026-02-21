@@ -32,6 +32,7 @@ type FunctionDefinition struct {
 	Name           string
 	Implementation builtins.Function
 	Type           FunctionType
+	Instructions   []byte
 }
 
 func NewVM(program []byte, code []string, debugMode bool, lgr *logger.Logger) *VM {
@@ -72,6 +73,21 @@ func (vm *VM) Run() error {
 
 			vm.logger.Debug("Constant %d: INT %d", i, intValue)
 			vm.constants[i] = int(intValue)
+
+		case codegen.FunctionTypeId:
+			instructionsCount := vm.readByte()
+			functionInstructions := vm.readBytes(int(instructionsCount))
+			function := FunctionDefinition{
+				Name:           fmt.Sprintf("func_%d", i),
+				Implementation: nil,
+				Type:           FunctionTypeCompiled,
+				Instructions:   functionInstructions,
+			}
+
+			vm.Functions = append(vm.Functions, function)
+			vm.logger.Debug("Constant %d: COMPILED FUNCTION with %d bytes", i, instructionsCount)
+		default:
+			return fmt.Errorf("unknown constant type id: %d", typeId)
 		}
 	}
 	vm.PcOffset = vm.Pc

@@ -10,6 +10,7 @@ import (
 )
 
 const IntTypeId = 1
+const FunctionTypeId = 2
 
 type ConstantDefinition struct {
 	Value  any
@@ -41,12 +42,17 @@ func NewCodeGenerator(tree ast.RootNode, srcLines []string, st *symboltable.Symb
 }
 
 func (cg *CodeGenerator) AddConstant(typeId int, value interface{}) int {
-	if idx, exists := cg.constantMap[value]; exists {
-		return idx
+	if typeId != FunctionTypeId {
+		if idx, exists := cg.constantMap[value]; exists {
+			return idx
+		}
 	}
 
 	cg.constants = append(cg.constants, ConstantDefinition{Value: value, TypeId: typeId})
-	cg.constantMap[value] = len(cg.constants) - 1
+
+	if typeId != FunctionTypeId {
+		cg.constantMap[value] = len(cg.constants) - 1
+	}
 	return len(cg.constants) - 1
 }
 
@@ -98,6 +104,10 @@ func (cg *CodeGenerator) writeConstantsPool() {
 		switch constant.TypeId {
 		case IntTypeId:
 			cg.Bytecode = append(cg.Bytecode, byte(constant.Value.(int8)))
+		case FunctionTypeId:
+			instructions := constant.Value.([]byte)
+			cg.Bytecode = append(cg.Bytecode, byte(len(instructions)))
+			cg.Bytecode = append(cg.Bytecode, instructions...)
 		}
 	}
 }
@@ -161,9 +171,41 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 		} else {
 			cg.logger.Error("Undefined function '%s' at position %+v", node.Name, node.Pos())
 		}
+	case ast.FunctionDeclarationNode:
+		return cg.generateFunctionDeclaration(node, st)
 	default:
 		cg.logger.Warn("Unknown statement type: %T at position %+v", node, node.Pos())
 	}
+
+	return ""
+}
+
+func (cg *CodeGenerator) generateFunctionDeclaration(node ast.FunctionDeclarationNode, st *symboltable.SymbolTable) string {
+	cg.logger.Debug("Generating function declaration for '%s'", node.Name)
+
+	// Track the bytecode position where function body starts
+	functionStartPos := len(cg.mainBytecode)
+
+	scopeVarIndex := len(cg.variables) - 1
+	cg.emit(opcode.START_SCOPE, scopeVarIndex)
+
+	cg.logger.Debug("Adding function's %d parameters to variable map", len(node.Parameters))
+	for _, param := range node.Parameters {
+		cg.AddVariable(param.Name)
+	}
+
+	for _, statement := range node.Body.Statements {
+		cg.logger.Debug("Generating function body statement")
+		cg.generateStatement(statement, node.Body.SymbolTable)
+	}
+	cg.emit(opcode.END_SCOPE)
+
+	// Extract the function instructions from the main bytecode
+	instructions := cg.mainBytecode[functionStartPos:]
+	cg.mainBytecode = cg.mainBytecode[:functionStartPos]
+
+	// Add function to constants pool
+	cg.AddConstant(FunctionTypeId, instructions)
 
 	return ""
 }

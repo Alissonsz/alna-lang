@@ -86,6 +86,13 @@ func (p *Parser) ParseStatement() ast.Node {
 	case lexer.IfKeyword:
 		return p.parseIfStatement()
 	case lexer.DataType:
+		nextToken := p.peek()
+		if nextToken.Type == lexer.Identifier {
+			afterNextToken := p.tokens[p.pos+2]
+			if afterNextToken.Type == lexer.OpenParenthesis {
+				return p.parseFunctionDeclaration()
+			}
+		}
 		return p.parseVariableDeclaration()
 	case lexer.Identifier:
 		if p.peek().Type == lexer.OpenParenthesis {

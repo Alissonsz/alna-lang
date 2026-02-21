@@ -1,6 +1,10 @@
 int a = 20
 int b = 10
 
+int games (int x, int y) {
+  x + y
+}
+
 if a > 10 {
   __write(a)
 } 

@@ -140,6 +140,30 @@ func PrintAST(node Node, indent string, isLast bool) {
 		for i, arg := range n.Arguments {
 			PrintAST(arg, childIndent, i == len(n.Arguments)-1)
 		}
+	case FunctionDeclarationNode:
+		fmt.Printf("%s%sFunctionDeclaration: %s\n", indent, connector, n.Name)
+		childIndent := indent
+		if isLast {
+			childIndent += "    "
+		} else {
+			childIndent += "│   "
+		}
+		// Print parameters
+		fmt.Printf("%s├── Parameters:\n", childIndent)
+		paramIndent := childIndent + "│   "
+		for i, param := range n.Parameters {
+			fmt.Printf("%s%sParameter: %s Type: %s\n", paramIndent, func() string {
+				if i == len(n.Parameters)-1 {
+					return "└── "
+				}
+				return "├── "
+			}(), param.Name, param.Type)
+		}
+		// Print return type
+		fmt.Printf("%s├── ReturnType: %s\n", childIndent, n.ReturnType)
+		// Print body
+		fmt.Printf("%s└── Body:\n", childIndent)
+		PrintAST(n.Body, childIndent+"    ", true)
 	default:
 		fmt.Printf("%s%sUnknown Node Type\n", indent, connector)
 	}

@@ -60,7 +60,24 @@ func Disassemble(bytecode []byte) string {
 			return output.String()
 		}
 
-		value := int(bytecode[pos])
+		var value interface{}
+
+		switch typeID {
+		case 1: // int
+			value = int(bytecode[pos])
+		case 2: // function
+			instructionsCount := int(bytecode[pos])
+			pos++
+			if pos+instructionsCount > len(bytecode) {
+				output.WriteString(fmt.Sprintf("Error: Unexpected end while reading function constant %d instructions\n", i))
+				return output.String()
+			}
+			value = bytecode[pos : pos+instructionsCount]
+			output.WriteString(fmt.Sprintf("Function with %d bytes", instructionsCount))
+			pos += instructionsCount - 1 // -1 because we'll increment pos again below
+		default:
+			value = fmt.Sprintf("unknown_type_%d", typeID)
+		}
 		pos++
 
 		constants = append(constants, Constant{TypeID: typeID, Value: value})
@@ -68,6 +85,9 @@ func Disassemble(bytecode []byte) string {
 		typeName := "unknown"
 		if typeID == 1 {
 			typeName = "int"
+		}
+		if typeID == 2 {
+			typeName = "function"
 		}
 
 		output.WriteString(fmt.Sprintf("  [%d] %s: %v\n", i, typeName, value))
