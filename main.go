@@ -18,6 +18,7 @@ import (
 
 var verbose = flag.Bool("verbose", false, "print tokens and AST during compilation")
 var disassemble = flag.Bool("disassemble", false, "disassemble bytecode into human-readable format")
+var debug = flag.Bool("debug", false, "run with interactive TUI debugger")
 
 func main() {
 	flag.Parse()
@@ -80,8 +81,7 @@ func main() {
 
 	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
 
-	// Debug mode is disabled for now (TUI requires interactive terminal)
-	vm := vm.NewVM(codegen.Bytecode, sourceLines, false, lgr)
+	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr)
 	err = vm.CheckHeader()
 	if err != nil {
 		log.Panicf("VM header check failed: %v", err.Error())

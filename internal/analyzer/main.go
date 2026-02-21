@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"alna-lang/internal/ast"
+	"alna-lang/internal/builtins"
 	"alna-lang/internal/common"
 	"alna-lang/internal/logger"
 	"alna-lang/internal/symbol_table"
@@ -92,6 +93,24 @@ func (a *Analyzer) analyzeStatement(stmt ast.Node, st *symboltable.SymbolTable) 
 		}
 	case ast.BinaryOpNode, ast.NumberNode, ast.BooleanNode, ast.IdentifierNode:
 		return a.analyzeExpression(node, st)
+	case ast.FunctionDeclarationNode:
+		st.Insert(node.Name, "function")
+		newSt := symboltable.NewSymbolTable(st, false)
+		newSt.Parent = st
+		a.logger.Debug("Entering new function scope for '%s'", node.Name)
+	case ast.FunctionCallNode:
+		// check if its an user defined function
+		if _, exists := st.Lookup(node.Name); !exists {
+			// check if its a built in function
+			if _, exists := builtins.GetBuiltins()[node.Name]; !exists {
+				return fmt.Errorf("undefined function '%s' at position %+v", node.Name, node.Pos())
+			}
+		}
+		for _, arg := range node.Arguments {
+			if err := a.analyzeExpression(arg, st); err != nil {
+				return err
+			}
+		}
 	default:
 		a.logger.Warn("Unknown statement type: %T at position %+v", node, node.Pos())
 	}
