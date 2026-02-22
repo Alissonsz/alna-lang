@@ -291,11 +291,12 @@ func (vm *VM) renderBytecodeView() string {
 			} else if op == opcode.LOAD_VAR || op == opcode.STORE_VAR {
 				relativePc := pos - vm.PcOffset
 				if srcPos, ok := vm.SourceMap[relativePc]; ok && srcPos.VarName != "" {
-					instruction += fmt.Sprintf("  ; %s", srcPos.VarName)
-				} else if name, ok := vm.VariableNames[operand]; ok {
-					instruction += fmt.Sprintf("  ; %s", name)
-				} else if operand < len(vm.Variables) {
-					instruction += fmt.Sprintf("  ; %v", vm.Variables[operand])
+					absIdx := vm.basePointer + operand
+					if absIdx < len(vm.Variables) {
+						instruction += fmt.Sprintf("  ; %s=%v", srcPos.VarName, vm.Variables[absIdx])
+					} else {
+						instruction += fmt.Sprintf("  ; %s", srcPos.VarName)
+					}
 				}
 			}
 
@@ -399,12 +400,16 @@ func (vm *VM) renderVariablesView() string {
 		variablesContent = "No variables yet\n"
 	} else {
 		varNames := vm.getVariableNamesAtCurrentPc()
-		for i, v := range vm.Variables {
-			if name, ok := varNames[i]; ok {
-				variablesContent += fmt.Sprintf("%s: %v\n", name, v)
+		for i := vm.basePointer; i < len(vm.Variables); i++ {
+			relIdx := i - vm.basePointer
+			if name, ok := varNames[relIdx]; ok {
+				variablesContent += fmt.Sprintf("%s: %v\n", name, vm.Variables[i])
 			} else {
-				variablesContent += fmt.Sprintf("var[%d]: %v\n", i, v)
+				variablesContent += fmt.Sprintf("var[%d]: %v\n", relIdx, vm.Variables[i])
 			}
+		}
+		if vm.basePointer > 0 {
+			variablesContent += dimStyle.Render(fmt.Sprintf("--- parent frames: %d vars ---\n", vm.basePointer))
 		}
 	}
 	return variablesContent

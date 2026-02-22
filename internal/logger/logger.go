@@ -20,6 +20,7 @@ const (
 // Logger provides structured logging with different levels
 type Logger struct {
 	level      LogLevel
+	step       string
 	debugLog   *log.Logger
 	infoLog    *log.Logger
 	warnLog    *log.Logger
@@ -29,6 +30,10 @@ type Logger struct {
 
 // New creates a new Logger with the specified level
 func New(level LogLevel, verbose bool) *Logger {
+	return NewWithStep(level, verbose, "")
+}
+
+func NewWithStep(level LogLevel, verbose bool, step string) *Logger {
 	flags := log.Ltime
 
 	var verboseOut io.Writer = io.Discard
@@ -36,12 +41,18 @@ func New(level LogLevel, verbose bool) *Logger {
 		verboseOut = os.Stdout
 	}
 
+	stepPrefix := ""
+	if step != "" {
+		stepPrefix = fmt.Sprintf("[%s] ", step)
+	}
+
 	return &Logger{
 		level:      level,
-		debugLog:   log.New(verboseOut, "[DEBUG] ", flags),
-		infoLog:    log.New(verboseOut, "[INFO]  ", flags),
-		warnLog:    log.New(os.Stderr, "[WARN]  ", flags),
-		errorLog:   log.New(os.Stderr, "[ERROR] ", flags),
+		step:       step,
+		debugLog:   log.New(verboseOut, stepPrefix+"[DEBUG] ", flags),
+		infoLog:    log.New(verboseOut, stepPrefix+"[INFO]  ", flags),
+		warnLog:    log.New(os.Stderr, stepPrefix+"[WARN]  ", flags),
+		errorLog:   log.New(os.Stderr, stepPrefix+"[ERROR] ", flags),
 		verboseOut: verboseOut,
 	}
 }
@@ -102,4 +113,8 @@ func (l *Logger) SetLevel(level LogLevel) {
 // IsVerbose returns whether verbose output is enabled
 func (l *Logger) IsVerbose() bool {
 	return l.verboseOut != io.Discard
+}
+
+func (l *Logger) WithStep(step string) *Logger {
+	return NewWithStep(l.level, l.IsVerbose(), step)
 }

@@ -22,40 +22,40 @@ func NewAnalyzer(tree *ast.RootNode, srcLines []string, lgr *logger.Logger) *Ana
 }
 
 func (a *Analyzer) Analyze() error {
-	for _, stmt := range a.ast.Children {
-		if err := a.analyzeStatement(stmt, a.SymbolTable); err != nil {
-			panic(common.CompilerError(stmt.Pos(), err.Error(), a.sourceLines))
+	for _, expr := range a.ast.Children {
+		if err := a.analyzeExpression(expr, a.SymbolTable); err != nil {
+			panic(common.CompilerError(expr.Pos(), err.Error(), a.sourceLines))
 		}
 	}
 
 	return nil
 }
 
-func (a *Analyzer) analyzeStatement(stmt ast.Node, st *symboltable.SymbolTable) error {
-	switch node := stmt.(type) {
-	case ast.IfStatementNode:
-		if err := a.analyzeExpression(node.Condition, st); err != nil {
+func (a *Analyzer) analyzeExpression(node ast.Node, st *symboltable.SymbolTable) error {
+	switch n := node.(type) {
+	case ast.IfExpressionNode:
+		if err := a.analyzeBinaryExpression(n.Condition, st); err != nil {
 			return err
 		}
-		if err := a.analyzeStatement(node.ThenBranch, st); err != nil {
+		if err := a.analyzeExpression(n.ThenBranch, st); err != nil {
 			return err
 		}
-		if node.ElseBranch != nil {
-			if err := a.analyzeStatement(node.ElseBranch, st); err != nil {
+		if n.ElseBranch != nil {
+			if err := a.analyzeExpression(n.ElseBranch, st); err != nil {
 				return err
 			}
 		}
 	case *ast.BlockNode:
-		if node != nil {
+		if n != nil {
 			newSt := symboltable.NewSymbolTable(st, false)
 			newSt.Parent = st
 
 			a.logger.Debug("Entering new block scope")
 			a.logger.Debug("Symbol table: %+v", newSt)
-			node.SymbolTable = newSt
+			n.SymbolTable = newSt
 
-			for _, statement := range node.Statements {
-				if err := a.analyzeStatement(statement, newSt); err != nil {
+			for _, expr := range n.Expressions {
+				if err := a.analyzeExpression(expr, newSt); err != nil {
 					return err
 				}
 			}
@@ -66,58 +66,56 @@ func (a *Analyzer) analyzeStatement(stmt ast.Node, st *symboltable.SymbolTable) 
 		a.logger.Debug("Entering new block scope")
 		a.logger.Debug("Symbol table: %+v", newSt)
 
-		node.SymbolTable = newSt
+		n.SymbolTable = newSt
 
-		for _, statement := range node.Statements {
-			if err := a.analyzeStatement(statement, newSt); err != nil {
+		for _, expr := range n.Expressions {
+			if err := a.analyzeExpression(expr, newSt); err != nil {
 				return err
 			}
 		}
 	case ast.VariableDeclarationNode:
-		st.Insert(node.Name, node.Type)
+		st.Insert(n.Name, n.Type)
 	case ast.AssignmentNode:
 		var varName string
-		switch node.Left.(type) {
+		switch n.Left.(type) {
 		case ast.IdentifierNode:
-			varName = node.Left.(ast.IdentifierNode).Name
+			varName = n.Left.(ast.IdentifierNode).Name
 		default:
-			return fmt.Errorf("invalid assignment target at position %+v", node.Left.Pos())
+			return fmt.Errorf("invalid assignment target at position %+v", n.Left.Pos())
 		}
 
 		if _, exists := st.Lookup(varName); !exists {
-			return fmt.Errorf("undefined variable '%s' at position %+v", varName, node.Left.Pos())
+			return fmt.Errorf("undefined variable '%s' at position %+v", varName, n.Left.Pos())
 		}
 
-		if err := a.analyzeStatement(node.Right, st); err != nil {
+		if err := a.analyzeExpression(n.Right, st); err != nil {
 			return err
 		}
 	case ast.BinaryOpNode, ast.NumberNode, ast.BooleanNode, ast.IdentifierNode:
-		return a.analyzeExpression(node, st)
+		return a.analyzeBinaryExpression(node, st)
 	case ast.FunctionDeclarationNode:
-		st.Insert(node.Name, "function")
+		st.Insert(n.Name, "function")
 		newSt := symboltable.NewSymbolTable(st, false)
 		newSt.Parent = st
-		a.logger.Debug("Entering new function scope for '%s'", node.Name)
+		a.logger.Debug("Entering new function scope for '%s'", n.Name)
 	case ast.FunctionCallNode:
-		// check if its an user defined function
-		if _, exists := st.Lookup(node.Name); !exists {
-			// check if its a built in function
-			if _, exists := builtins.GetBuiltins()[node.Name]; !exists {
-				return fmt.Errorf("undefined function '%s' at position %+v", node.Name, node.Pos())
+		if _, exists := st.Lookup(n.Name); !exists {
+			if _, exists := builtins.GetBuiltins()[n.Name]; !exists {
+				return fmt.Errorf("undefined function '%s' at position %+v", n.Name, n.Pos())
 			}
 		}
-		for _, arg := range node.Arguments {
-			if err := a.analyzeExpression(arg, st); err != nil {
+		for _, arg := range n.Arguments {
+			if err := a.analyzeBinaryExpression(arg, st); err != nil {
 				return err
 			}
 		}
 	default:
-		a.logger.Warn("Unknown statement type: %T at position %+v", node, node.Pos())
+		a.logger.Warn("Unknown expression type: %T at position %+v", node, node.Pos())
 	}
 	return nil
 }
 
-func (a *Analyzer) analyzeExpression(expr ast.Node, st *symboltable.SymbolTable) error {
+func (a *Analyzer) analyzeBinaryExpression(expr ast.Node, st *symboltable.SymbolTable) error {
 	a.logger.Debug("Analyzing expression: %T at position %+v", expr, expr.Pos())
 	switch node := expr.(type) {
 	case ast.NumberNode:
@@ -130,10 +128,10 @@ func (a *Analyzer) analyzeExpression(expr ast.Node, st *symboltable.SymbolTable)
 		}
 		return nil
 	case ast.BinaryOpNode:
-		if err := a.analyzeExpression(node.Left, st); err != nil {
+		if err := a.analyzeBinaryExpression(node.Left, st); err != nil {
 			return err
 		}
-		if err := a.analyzeExpression(node.Right, st); err != nil {
+		if err := a.analyzeBinaryExpression(node.Right, st); err != nil {
 			return err
 		}
 

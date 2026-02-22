@@ -8,6 +8,7 @@ import (
 )
 
 func (p *Parser) parseAssignment() ast.Node {
+	p.logger.Debug("Parsing assignment expression")
 	token := p.tokens[p.pos]
 	left := p.parseIdentifier()
 
@@ -27,8 +28,8 @@ func (p *Parser) parseAssignment() ast.Node {
 
 	right := p.parseExpression()
 	return ast.AssignmentNode{
-		Left:     left,
-		Right:    right,
+		Left:  left,
+		Right: right,
 		Position: common.Position{
 			Line:      token.Line,
 			Column:    token.StartColumn,

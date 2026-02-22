@@ -1,0 +1,15 @@
+int games(int x) {
+   int a = x + 10
+   if a > 20 {
+     int b = a - 5
+     __write(b)
+     return
+   }
+   __write(a)
+}
+
+int main () {
+  int a = 15
+  games(a)
+}
+

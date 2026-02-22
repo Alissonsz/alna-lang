@@ -20,7 +20,9 @@ const (
 	JUMP
 	START_SCOPE
 	END_SCOPE
+	CALL_BUILTIN
 	CALL
+	RETURN
 )
 
 // String returns the mnemonic name of the opcode
@@ -54,8 +56,12 @@ func (op Opcode) String() string {
 		return "START_SCOPE"
 	case END_SCOPE:
 		return "END_SCOPE"
+	case CALL_BUILTIN:
+		return "CALL_BUILTIN"
 	case CALL:
 		return "CALL"
+	case RETURN:
+		return "RETURN"
 	default:
 		fmt.Printf("Unknown opcode: %d\n", op)
 		return "UNKNOWN"
@@ -65,7 +71,7 @@ func (op Opcode) String() string {
 // HasOperand returns true if the opcode takes a 1-byte operand
 func (op Opcode) HasOperand() bool {
 	switch op {
-	case LOAD_CONST, LOAD_VAR, STORE_VAR, JUMP_IF_FALSE, JUMP_IF_TRUE, START_SCOPE, CALL:
+	case LOAD_CONST, LOAD_VAR, STORE_VAR, JUMP_IF_FALSE, JUMP_IF_TRUE, START_SCOPE, CALL, CALL_BUILTIN:
 		return true
 	default:
 		return false

@@ -84,21 +84,18 @@ func PrintAST(node Node, indent string, isLast bool) {
 		// Print value
 		fmt.Printf("%s└── Value:\n", childIndent)
 		PrintAST(n.Right, childIndent+"    ", true)
-	case IfStatementNode:
-		fmt.Printf("%s%sIfStatement\n", indent, connector)
+	case IfExpressionNode:
+		fmt.Printf("%s%sIfExpression\n", indent, connector)
 		childIndent := indent
 		if isLast {
 			childIndent += "    "
 		} else {
 			childIndent += "│   "
 		}
-		// Print condition
 		fmt.Printf("%s├── Condition:\n", childIndent)
 		PrintAST(n.Condition, childIndent+"│   ", false)
-		// Print then block
 		fmt.Printf("%s├── ThenBlock:\n", childIndent)
 		PrintAST(n.ThenBranch, childIndent+"│   ", n.ElseBranch == nil)
-		// Print else block (if present)
 		if n.ElseBranch != nil {
 			fmt.Printf("%s└── ElseBlock:\n", childIndent)
 			PrintAST(n.ElseBranch, childIndent+"    ", true)
@@ -111,8 +108,8 @@ func PrintAST(node Node, indent string, isLast bool) {
 		} else {
 			childIndent += "│   "
 		}
-		for i, stmt := range n.Statements {
-			PrintAST(stmt, childIndent, i == len(n.Statements)-1)
+		for i, expr := range n.Expressions {
+			PrintAST(expr, childIndent, i == len(n.Expressions)-1)
 		}
 	case *BlockNode:
 		if n == nil {
@@ -126,8 +123,8 @@ func PrintAST(node Node, indent string, isLast bool) {
 		} else {
 			childIndent += "│   "
 		}
-		for i, stmt := range n.Statements {
-			PrintAST(stmt, childIndent, i == len(n.Statements)-1)
+		for i, expr := range n.Expressions {
+			PrintAST(expr, childIndent, i == len(n.Expressions)-1)
 		}
 	case FunctionCallNode:
 		fmt.Printf("%s%sFunctionCall: %s\n", indent, connector, n.Name)
@@ -164,6 +161,15 @@ func PrintAST(node Node, indent string, isLast bool) {
 		// Print body
 		fmt.Printf("%s└── Body:\n", childIndent)
 		PrintAST(n.Body, childIndent+"    ", true)
+	case ReturnNode:
+		fmt.Printf("%s%sReturn\n", indent, connector)
+		childIndent := indent
+		if isLast {
+			childIndent += "    "
+		} else {
+			childIndent += "│   "
+		}
+		PrintAST(n.Value, childIndent, true)
 	default:
 		fmt.Printf("%s%sUnknown Node Type\n", indent, connector)
 	}

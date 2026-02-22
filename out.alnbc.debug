@@ -1,143 +1,236 @@
 {
   "version": 1,
-  "sourceFile": "examples/conditionals.alna",
+  "sourceFile": "examples/function_call.alna",
   "sourceLines": [
-    "int a = 20",
-    "int b = 10",
-    "",
-    "int games(int x, int y) {",
-    "   x + y",
+    "int games(int x) {",
+    "   int a = x + 10",
+    "   if a \u003e 20 {",
+    "     int b = a - 5",
+    "     __write(b)",
+    "     return",
+    "   }",
+    "   __write(a)",
     "}",
     "",
-    "if a \u003e 10 {",
-    "  int c = 30",
-    "  __write(c)",
-    "} ",
-    "",
-    "int arisu = 10"
+    "int main () {",
+    "  int a = 15",
+    "  games(a)",
+    "}",
+    ""
   ],
-  "variables": [
-    {
-      "index": 0,
-      "name": "a"
-    },
-    {
-      "index": 1,
-      "name": "b"
-    },
-    {
-      "index": 2,
-      "name": "arisu"
-    }
-  ],
+  "variables": [],
   "functions": [
     {
-      "constantIndex": 2,
+      "address": 0,
       "name": "games"
+    },
+    {
+      "address": 41,
+      "name": "main"
     }
   ],
   "sourceMap": [
     {
       "pc": 0,
       "line": 0,
-      "column": 8,
-      "endColumn": 10
+      "column": 0,
+      "endColumn": 13
     },
     {
       "pc": 2,
       "line": 0,
       "column": 0,
-      "endColumn": 10,
-      "varName": "a"
+      "endColumn": 13,
+      "varName": "x"
     },
     {
       "pc": 4,
       "line": 1,
-      "column": 8,
-      "endColumn": 10
+      "column": 11,
+      "endColumn": 12,
+      "varName": "x"
     },
     {
       "pc": 6,
       "line": 1,
-      "column": 0,
-      "endColumn": 10,
-      "varName": "b"
+      "column": 15,
+      "endColumn": 17
     },
     {
       "pc": 8,
-      "line": 7,
+      "line": 1,
+      "column": 11,
+      "endColumn": 17
+    },
+    {
+      "pc": 9,
+      "line": 1,
       "column": 3,
-      "endColumn": 4,
+      "endColumn": 17,
       "varName": "a"
     },
     {
-      "pc": 10,
-      "line": 7,
-      "column": 7,
-      "endColumn": 9
-    },
-    {
-      "pc": 12,
-      "line": 7,
-      "column": 3,
-      "endColumn": 9
+      "pc": 11,
+      "line": 2,
+      "column": 6,
+      "endColumn": 7,
+      "varName": "a"
     },
     {
       "pc": 13,
-      "line": 7,
-      "column": 0,
+      "line": 2,
+      "column": 10,
       "endColumn": 12
     },
     {
       "pc": 15,
-      "line": 8,
-      "column": 2,
+      "line": 2,
+      "column": 6,
       "endColumn": 12
     },
     {
-      "pc": 17,
-      "line": 8,
-      "column": 10,
-      "endColumn": 12
+      "pc": 16,
+      "line": 2,
+      "column": 3,
+      "endColumn": 11
     },
     {
-      "pc": 19,
-      "line": 8,
-      "column": 2,
-      "endColumn": 12,
-      "varName": "c"
+      "pc": 18,
+      "line": 3,
+      "column": 5,
+      "endColumn": 11
     },
     {
-      "pc": 21,
-      "line": 9,
-      "column": 10,
-      "endColumn": 11,
-      "varName": "c"
+      "pc": 20,
+      "line": 3,
+      "column": 13,
+      "endColumn": 14,
+      "varName": "a"
     },
     {
-      "pc": 23,
-      "line": 9,
-      "column": 2,
-      "endColumn": 12
+      "pc": 22,
+      "line": 3,
+      "column": 17,
+      "endColumn": 18
+    },
+    {
+      "pc": 24,
+      "line": 3,
+      "column": 13,
+      "endColumn": 18
     },
     {
       "pc": 25,
-      "line": 9,
-      "column": 2,
+      "line": 3,
+      "column": 5,
+      "endColumn": 18,
+      "varName": "b"
+    },
+    {
+      "pc": 27,
+      "line": 4,
+      "column": 13,
+      "endColumn": 14,
+      "varName": "b"
+    },
+    {
+      "pc": 29,
+      "line": 4,
+      "column": 5,
+      "endColumn": 15
+    },
+    {
+      "pc": 31,
+      "line": 5,
+      "column": 5,
+      "endColumn": 11
+    },
+    {
+      "pc": 32,
+      "line": 5,
+      "column": 5,
+      "endColumn": 11
+    },
+    {
+      "pc": 33,
+      "line": 5,
+      "column": 5,
+      "endColumn": 11
+    },
+    {
+      "pc": 34,
+      "line": 5,
+      "column": 5,
+      "endColumn": 11
+    },
+    {
+      "pc": 35,
+      "line": 7,
+      "column": 11,
+      "endColumn": 12,
+      "varName": "a"
+    },
+    {
+      "pc": 37,
+      "line": 7,
+      "column": 3,
+      "endColumn": 13
+    },
+    {
+      "pc": 39,
+      "line": 7,
+      "column": 3,
+      "endColumn": 13
+    },
+    {
+      "pc": 40,
+      "line": 7,
+      "column": 3,
+      "endColumn": 13
+    },
+    {
+      "pc": 41,
+      "line": 10,
+      "column": 0,
+      "endColumn": 10
+    },
+    {
+      "pc": 43,
+      "line": 11,
+      "column": 10,
       "endColumn": 12
     },
     {
-      "pc": 26,
-      "line": 12,
-      "column": 12,
-      "endColumn": 14
+      "pc": 45,
+      "line": 11,
+      "column": 2,
+      "endColumn": 12,
+      "varName": "a"
     },
     {
-      "pc": 28,
+      "pc": 47,
       "line": 12,
-      "column": 0,
-      "endColumn": 14,
-      "varName": "arisu"
+      "column": 8,
+      "endColumn": 9,
+      "varName": "a"
+    },
+    {
+      "pc": 49,
+      "line": 12,
+      "column": 2,
+      "endColumn": 10
+    },
+    {
+      "pc": 51,
+      "line": 12,
+      "column": 2,
+      "endColumn": 10
+    },
+    {
+      "pc": 52,
+      "line": 12,
+      "column": 2,
+      "endColumn": 10
     }
   ]
 }

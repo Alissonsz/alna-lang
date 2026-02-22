@@ -1,0 +1,23 @@
+Root
+FunctionDeclaration: games
+│   ├── Parameters:
+│   │   └── Parameter: x Type: int
+│   ├── ReturnType: int
+│   └── Body:
+│       └── Block
+│           ├── VariableDeclaration
+│           │   ├── Name: a
+│           │   ├── Type: int
+│           │   └── Initializer:
+│           │       └── BinaryOp (+)
+│           │           ├── Identifier: x
+│           │           └── Number: 10
+│           ├── FunctionCall: __write
+│           │   └── Identifier: a
+│           └── Identifier: a
+VariableDeclaration
+    ├── Name: result
+    ├── Type: int
+    └── Initializer:
+        └── FunctionCall: games
+            └── Number: 10

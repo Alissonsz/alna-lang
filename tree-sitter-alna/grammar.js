@@ -11,96 +11,14 @@ module.exports = grammar({
   ],
 
   rules: {
-    source_file: $ => repeat($._statement),
+    source_file: $ => repeat($._expression),
 
-    _statement: $ => choice(
-      $.variable_declaration,
-      $.assignment,
-      $.if_statement,
-      $.while_statement,
-      $.for_statement,
-      $.return_statement,
-      $.break_statement,
-      $.continue_statement,
-      $.expression_statement,
-      $.block,
-      $.function_declaration,
-    ),
-
-    // Comments
-    comment: $ => token(choice(
-      seq('//', /.*/),
-      seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')
-    )),
-
-    // Variable declaration: int x = 10
-    variable_declaration: $ => seq(
-      field('type', $.type),
-      field('name', $.identifier),
-      '=',
-      field('value', $._expression),
-    ),
-
-    // Assignment: x = 5
-    assignment: $ => seq(
-      field('left', $.identifier),
-      '=',
-      field('right', $._expression),
-    ),
-
-    // If statement
-    if_statement: $ => seq(
-      'if',
-      field('condition', $._expression),
-      field('consequence', $.block),
-      optional(seq(
-        'else',
-        field('alternative', choice($.block, $.if_statement))
-      ))
-    ),
-
-    // While statement
-    while_statement: $ => seq(
-      'while',
-      field('condition', $._expression),
-      field('body', $.block)
-    ),
-
-    // For statement
-    for_statement: $ => seq(
-      'for',
-      field('initializer', optional($._statement)),
-      ';',
-      field('condition', optional($._expression)),
-      ';',
-      field('update', optional($._expression)),
-      field('body', $.block)
-    ),
-
-    // Return statement
-    return_statement: $ => prec.left(seq(
-      'return',
-      optional($._expression)
-    )),
-
-    // Break statement
-    break_statement: $ => 'break',
-
-    // Continue statement
-    continue_statement: $ => 'continue',
-
-    // Block: { ... }
-    block: $ => seq(
-      '{',
-      repeat($._statement),
-      '}'
-    ),
-
-    // Expression statement
-    expression_statement: $ => $._expression,
-
-    // Expressions
     _expression: $ => choice(
+      $._expression_without_block,
+      $._expression_with_block,
+    ),
+
+    _expression_without_block: $ => choice(
       $.binary_expression,
       $.unary_expression,
       $.number,
@@ -108,6 +26,48 @@ module.exports = grammar({
       $.identifier,
       $.parenthesized_expression,
       $.function_call,
+      $.assignment,
+      $.variable_declaration,
+      $.function_declaration,
+    ),
+
+    _expression_with_block: $ => choice(
+      $.block,
+      $.if_expression,
+    ),
+
+    comment: $ => token(choice(
+      seq('//', /.*/),
+      seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')
+    )),
+
+    variable_declaration: $ => seq(
+      field('type', $.type),
+      field('name', $.identifier),
+      '=',
+      field('value', $._expression),
+    ),
+
+    assignment: $ => seq(
+      field('left', $.identifier),
+      '=',
+      field('right', $._expression),
+    ),
+
+    if_expression: $ => seq(
+      'if',
+      field('condition', $._expression),
+      field('consequence', $.block),
+      optional(seq(
+        'else',
+        field('alternative', choice($.block, $.if_expression))
+      ))
+    ),
+
+    block: $ => seq(
+      '{',
+      repeat($._expression),
+      '}'
     ),
 
     binary_expression: $ => {
@@ -152,7 +112,6 @@ module.exports = grammar({
       repeat(seq(',', $._expression))
     ),
 
-    // Function declaration
     function_declaration: $ => seq(
       field('return_type', $.type),
       field('name', $.identifier),
@@ -172,7 +131,6 @@ module.exports = grammar({
       field('name', $.identifier)
     ),
 
-    // Types
     type: $ => choice(
       'int',
       'i8',
@@ -191,16 +149,15 @@ module.exports = grammar({
       'void'
     ),
 
-    // Primitives
     identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
     number: $ => token(choice(
       seq(
         choice(
-          /[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?/,  // float
-          /[0-9]+/,                              // decimal
-          /0[xX][0-9a-fA-F]+/,                   // hex
-          /0[bB][01]+/                           // binary
+          /[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?/,
+          /[0-9]+/,
+          /0[xX][0-9a-fA-F]+/,
+          /0[bB][01]+/
         )
       )
     )),

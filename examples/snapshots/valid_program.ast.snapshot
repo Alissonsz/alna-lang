@@ -8,20 +8,20 @@ VariableDeclaration
 │   ├── Name: y
 │   ├── Type: int
 │   └── Initializer:
-│       └── LowPrecedence (+)
+│       └── BinaryOp (+)
 │           ├── Number: 20
 │           └── Number: 30
 VariableDeclaration
 │   ├── Name: result
 │   ├── Type: int
 │   └── Initializer:
-│       └── HighPrecedence (*)
+│       └── BinaryOp (*)
 │           ├── Identifier: x
 │           └── Identifier: y
 Assignment
     ├── Target:
     │   └── Identifier: a
     └── Value:
-        └── LowPrecedence (+)
+        └── BinaryOp (+)
             ├── Number: 5
             └── Number: 3

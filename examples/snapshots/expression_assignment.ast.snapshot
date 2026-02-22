@@ -13,9 +13,8 @@ Assignment
     ├── Target:
     │   └── Identifier: arisu
     └── Value:
-        └── HighPrecedence (*)
-            ├── Parenthised
-            │   └── LowPrecedence (+)
-            │       ├── Number: 10
-            │       └── Number: 5
+        └── BinaryOp (*)
+            ├── BinaryOp (+)
+            │   ├── Number: 10
+            │   └── Number: 5
             └── Identifier: a

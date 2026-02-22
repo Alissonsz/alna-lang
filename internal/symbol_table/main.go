@@ -40,6 +40,10 @@ func (st *SymbolTable) Insert(name string, varType string) error {
 }
 
 func (st *SymbolTable) Print() {
+	if st == nil {
+		println("No symbols in this table")
+		return
+	}
 	for name, info := range st.symbols {
 		println("Variable:", name, "Type:", info.Type)
 	}

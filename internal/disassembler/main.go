@@ -40,6 +40,10 @@ func Disassemble(bytecode []byte) string {
 		return output.String()
 	}
 
+	startingAddress := int(bytecode[pos]) | int(bytecode[pos+1])<<8 | int(bytecode[pos+2])<<16 | int(bytecode[pos+3])<<24
+	output.WriteString(fmt.Sprintf("Starting Address: %d\n", startingAddress))
+	pos += 4
+
 	constantCount := int(bytecode[pos])
 	pos++
 

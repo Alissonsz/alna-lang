@@ -9,15 +9,30 @@ VariableDeclaration
 │   ├── Type: int
 │   └── Initializer:
 │       └── Number: 10
-IfStatement
+FunctionDeclaration: games
+│   ├── Parameters:
+│   │   ├── Parameter: x Type: int
+│   │   └── Parameter: y Type: int
+│   ├── ReturnType: int
+│   └── Body:
+│       └── Block
+│           └── BinaryOp (+)
+│               ├── Identifier: x
+│               └── Identifier: y
+IfExpression
 │   ├── Condition:
 │   │   ├── BinaryOp (>)
 │   │   │   ├── Identifier: a
 │   │   │   └── Number: 10
 │   ├── ThenBlock:
 │   │   ├── Block
+│   │   │   ├── VariableDeclaration
+│   │   │   │   ├── Name: c
+│   │   │   │   ├── Type: int
+│   │   │   │   └── Initializer:
+│   │   │   │       └── Number: 30
 │   │   │   └── FunctionCall: __write
-│   │   │       └── Identifier: a
+│   │   │       └── Identifier: c
 │   └── ElseBlock:
 VariableDeclaration
     ├── Name: arisu

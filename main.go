@@ -43,14 +43,14 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(srcCode)
-	lex := lexer.NewLexer(*scanner, lgr)
+	lex := lexer.NewLexer(*scanner, lgr.WithStep("lexer"))
 
 	tokens, sourceLines, err := lex.Analyze()
 	if err != nil {
 		log.Panicf("Lexical analysis error: %v", err.Error())
 	}
 
-	p := parser.NewParser(tokens, sourceLines, lgr)
+	p := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))
 	tree := p.Parse()
 
 	if *verbose {
@@ -58,7 +58,7 @@ func main() {
 		ast.PrintAST(tree, "", true)
 	}
 
-	analyzer := analyzer.NewAnalyzer(&tree, sourceLines, lgr)
+	analyzer := analyzer.NewAnalyzer(&tree, sourceLines, lgr.WithStep("analyzer"))
 	analyzer.Analyze()
 
 	if *verbose {
@@ -66,7 +66,7 @@ func main() {
 		analyzer.PrintSymbolTable()
 	}
 
-	codegen := codegen.NewCodeGenerator(tree, sourceLines, analyzer.SymbolTable, lgr)
+	codegen := codegen.NewCodeGenerator(tree, sourceLines, analyzer.SymbolTable, lgr.WithStep("codegen"))
 	if *debug {
 		codegen.SetDebugMode(args[0])
 	}
@@ -90,7 +90,7 @@ func main() {
 		}
 	}
 
-	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr)
+	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr.WithStep("vm"))
 
 	if *debug {
 		if err := vm.LoadDebugFile("out.alnbc.debug"); err != nil {

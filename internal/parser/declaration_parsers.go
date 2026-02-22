@@ -8,6 +8,7 @@ import (
 )
 
 func (p *Parser) parseVariableDeclaration() ast.Node {
+	p.logger.Debug("Parsing variable declaration")
 	token := p.tokens[p.pos]
 	if token.Type != lexer.DataType {
 		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected data type, got %v", token.Type), p.sourceLines))
@@ -55,6 +56,7 @@ func (p *Parser) parseVariableDeclaration() ast.Node {
 }
 
 func (p *Parser) parseFunctionDeclaration() ast.Node {
+	p.logger.Debug("Parsing function declaration")
 	token := p.tokens[p.pos]
 	if token.Type != lexer.DataType {
 		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected return data type, got %v", token.Type), p.sourceLines))

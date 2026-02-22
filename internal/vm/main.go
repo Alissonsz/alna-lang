@@ -50,6 +50,9 @@ type VM struct {
 	Pc            int
 	PcOffset      int
 	stack         []any
+	callStack     []int
+	scopeStack    []int
+	basePointer   int
 	constants     []any
 	Variables     []any
 	Functions     []FunctionDefinition
@@ -80,6 +83,8 @@ func NewVM(program []byte, code []string, debugMode bool, lgr *logger.Logger) *V
 		rawCode:       code,
 		Pc:            0,
 		stack:         []any{},
+		callStack:     []int{},
+		scopeStack:    []int{},
 		debugMode:     debugMode,
 		logger:        lgr,
 		VariableNames: make(map[int]string),
@@ -133,7 +138,11 @@ func (vm *VM) CheckHeader() error {
 }
 
 func (vm *VM) Run() error {
+	startingPc := vm.readBytes(4)
+	mainAddress := int(startingPc[0]) | int(startingPc[1])<<8 | int(startingPc[2])<<16 | int(startingPc[3])<<24
+	vm.logger.Debug("Starting PC: %d", mainAddress)
 	costantsCount := vm.readByte()
+	vm.logger.Debug("Constants count: %d", costantsCount)
 	vm.constants = make([]any, int(costantsCount))
 	vm.registerBuiltins()
 
@@ -152,30 +161,14 @@ func (vm *VM) Run() error {
 
 			vm.logger.Debug("Constant %d: INT %d", i, intValue)
 			vm.constants[i] = int(intValue)
-
-		case codegen.FunctionTypeId:
-			instructionsCount := vm.readByte()
-			functionInstructions := vm.readBytes(int(instructionsCount))
-
-			funcName := fmt.Sprintf("func_%d", i)
-			if name, ok := compiledFuncNames[i]; ok {
-				funcName = name
-			}
-
-			function := FunctionDefinition{
-				Name:           funcName,
-				Implementation: nil,
-				Type:           FunctionTypeCompiled,
-				Instructions:   functionInstructions,
-			}
-
-			vm.Functions = append(vm.Functions, function)
-			vm.logger.Debug("Constant %d: COMPILED FUNCTION with %d bytes", i, instructionsCount)
 		default:
 			return fmt.Errorf("unknown constant type id: %d", typeId)
 		}
 	}
 	vm.PcOffset = vm.Pc
+	vm.Pc = mainAddress + vm.PcOffset
+	vm.logger.Debug("Initial PC set to: %d", vm.Pc)
+
 	if vm.debugMode {
 		vm.logger.Info("=== STARTING DEBUG MODE ===")
 		err := vm.StartTuiDebugger()
@@ -185,7 +178,7 @@ func (vm *VM) Run() error {
 		return nil
 	}
 
-	for i := vm.Pc; i < len(vm.program)-1; i++ {
+	for vm.Pc < len(vm.program) {
 		err := vm.Step()
 		if err != nil {
 			return err
@@ -210,15 +203,19 @@ func (vm *VM) Step() error {
 		vm.logger.Debug("LOAD_CONST %d -> %v", constIndex, constValue)
 	case byte(opcode.LOAD_VAR):
 		varIndex := vm.readByte()
-		varValue := vm.getVariable(int(varIndex))
+		varValue := vm.getVariable(vm.basePointer + int(varIndex))
 		vm.pushStack(varValue)
-		vm.logger.Debug("LOAD_VAR %d -> %v", varIndex, varValue)
+		vm.logger.Debug("LOAD_VAR %d (abs %d) -> %v", varIndex, vm.basePointer+int(varIndex), varValue)
 	case byte(opcode.STORE_VAR):
 		varIndex := vm.readByte()
 		value := vm.popStack()
-		vm.pushVariable(value)
+		absIndex := vm.basePointer + int(varIndex)
+		for len(vm.Variables) <= absIndex {
+			vm.Variables = append(vm.Variables, nil)
+		}
+		vm.Variables[absIndex] = value
 
-		vm.logger.Debug("STORE_VAR %d <- %v", varIndex, value)
+		vm.logger.Debug("STORE_VAR %d (abs %d) <- %v", varIndex, absIndex, value)
 
 	case byte(opcode.ADD):
 		right := vm.popStack()
@@ -245,32 +242,44 @@ func (vm *VM) Step() error {
 		}
 	case byte(opcode.START_SCOPE):
 		localsIndex := vm.readByte()
-		vm.pushStack(int(localsIndex))
-		vm.logger.Debug("START_SCOPE %d", localsIndex)
+		absIndex := vm.basePointer + int(localsIndex)
+		vm.pushScopeStack(absIndex)
+		vm.logger.Debug("START_SCOPE %d (abs %d)", localsIndex, absIndex)
 	case byte(opcode.END_SCOPE):
-		vm.logger.Debug("END_SCOPE")
-		scopeVarIndex := vm.popStack().(int)
-		vm.logger.Debug("Clearing variables till index %d", scopeVarIndex)
-		vm.clearVariablesTill(scopeVarIndex)
-	case byte(opcode.CALL):
+		scopeVarIndex := vm.popScopeStack()
+		vm.logger.Debug("END_SCOPE, clearing variables to abs index %d", scopeVarIndex)
+		vm.Variables = vm.Variables[:scopeVarIndex]
+	case byte(opcode.CALL_BUILTIN):
 		funcIndex := vm.readByte()
 		function := vm.Functions[int(funcIndex)]
-		vm.logger.Debug("CALL function %s", function.Name)
-
-		switch function.Type {
-		case FunctionTypeBuiltin:
-			arg := vm.popStack()
-			result := function.Implementation(arg)
-
-			if result != nil {
-				vm.pushStack(result)
-				vm.logger.Debug("Function %s returned %v", function.Name, result)
-
-			}
-		case FunctionTypeCompiled:
-			// For compiled functions, we would need to implement a call stack and manage execution context
-			return fmt.Errorf("compiled function calls not implemented yet")
+		vm.logger.Debug("CALL_BUILTIN function %s", function.Name)
+		arg := vm.popStack()
+		result := function.Implementation(arg)
+		if result != nil {
+			vm.pushStack(result)
+			vm.logger.Debug("Function %s returned %v", function.Name, result)
 		}
+	case byte(opcode.CALL):
+		funcIndex := int(vm.readByte()) + vm.PcOffset
+		vm.logger.Debug("CALL function at: %d", funcIndex)
+
+		returnAddress := vm.Pc
+		vm.pushCallStack(returnAddress)
+		vm.pushCallStack(vm.basePointer)
+		vm.basePointer = len(vm.Variables)
+		vm.Pc = funcIndex
+
+	case byte(opcode.RETURN):
+		if len(vm.callStack) == 0 {
+			vm.Pc = len(vm.program)
+			vm.logger.Debug("RETURN from main - program ended")
+			return nil
+		}
+		vm.Variables = vm.Variables[:vm.basePointer]
+		vm.basePointer = vm.popCallStack()
+		returnAddress := vm.popCallStack()
+		vm.Pc = returnAddress
+		vm.logger.Debug("RETURN to %d, basePointer restored to %d", returnAddress, vm.basePointer)
 
 	default:
 		return fmt.Errorf("unknown opcode: 0x%02X at pc %d", op, vm.Pc-1)
@@ -308,9 +317,30 @@ func (vm *VM) popStack() any {
 	return value
 }
 
-func (vm *VM) pushVariable(value any) int {
-	vm.Variables = append(vm.Variables, value)
-	return len(vm.Variables) - 1
+func (vm *VM) pushCallStack(returnAddress int) {
+	vm.callStack = append(vm.callStack, returnAddress)
+}
+
+func (vm *VM) popCallStack() int {
+	if len(vm.callStack) == 0 {
+		return 0
+	}
+	address := vm.callStack[len(vm.callStack)-1]
+	vm.callStack = vm.callStack[:len(vm.callStack)-1]
+	return address
+}
+
+func (vm *VM) pushScopeStack(localsIndex int) {
+	vm.scopeStack = append(vm.scopeStack, localsIndex)
+}
+
+func (vm *VM) popScopeStack() int {
+	if len(vm.scopeStack) == 0 {
+		return 0
+	}
+	index := vm.scopeStack[len(vm.scopeStack)-1]
+	vm.scopeStack = vm.scopeStack[:len(vm.scopeStack)-1]
+	return index
 }
 
 func (vm *VM) getVariable(index int) any {
@@ -318,11 +348,4 @@ func (vm *VM) getVariable(index int) any {
 		return nil
 	}
 	return vm.Variables[index]
-}
-
-func (vm *VM) clearVariablesTill(index int) {
-	if index < 0 || index >= len(vm.Variables) {
-		return
-	}
-	vm.Variables = vm.Variables[:index+1]
 }

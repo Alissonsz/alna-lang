@@ -3,7 +3,7 @@ VariableDeclaration
 │   ├── Name: myVariable
 │   ├── Type: int
 │   └── Initializer:
-│       └── LowPrecedence (+)
+│       └── BinaryOp (+)
 │           ├── Number: 123
 │           └── Number: 456
 Identifier: string

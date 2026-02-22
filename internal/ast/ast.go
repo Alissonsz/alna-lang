@@ -116,9 +116,9 @@ func (v VariableDeclarationNode) Pos() common.Position {
 	return v.Position
 }
 
-// BlockNode represents a block of statements
+// BlockNode represents a block of expressions
 type BlockNode struct {
-	Statements  []Node
+	Expressions []Node
 	SymbolTable *symboltable.SymbolTable
 	Position    common.Position
 }
@@ -131,19 +131,19 @@ func (b BlockNode) Pos() common.Position {
 	return b.Position
 }
 
-// IfStatementNode represents an if-else statement
-type IfStatementNode struct {
+// IfExpressionNode represents an if-else expression
+type IfExpressionNode struct {
 	Condition  Node
 	ThenBranch Node
 	ElseBranch Node
 	Position   common.Position
 }
 
-func (i IfStatementNode) NodeType() string {
+func (i IfExpressionNode) NodeType() string {
 	return "IfExpressionNode"
 }
 
-func (i IfStatementNode) Pos() common.Position {
+func (i IfExpressionNode) Pos() common.Position {
 	return i.Position
 }
 
@@ -167,7 +167,7 @@ func (f FunctionDeclarationNode) NodeType() string {
 }
 
 func (f FunctionDeclarationNode) Pos() common.Position {
-	return common.Position{}
+	return f.Position
 }
 
 // FunctionCallNode represents a function call
@@ -183,4 +183,17 @@ func (f FunctionCallNode) NodeType() string {
 
 func (f FunctionCallNode) Pos() common.Position {
 	return f.Position
+}
+
+type ReturnNode struct {
+	Value    Node
+	Position common.Position
+}
+
+func (r ReturnNode) NodeType() string {
+	return "ReturnNode"
+}
+
+func (r ReturnNode) Pos() common.Position {
+	return r.Position
 }

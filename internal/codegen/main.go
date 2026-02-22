@@ -38,8 +38,8 @@ type VariableInfo struct {
 }
 
 type FunctionInfo struct {
-	ConstantIndex int    `json:"constantIndex"`
-	Name          string `json:"name"`
+	Address int    `json:"address"`
+	Name    string `json:"name"`
 }
 
 type DebugInfo struct {
@@ -52,24 +52,25 @@ type DebugInfo struct {
 }
 
 type CodeGenerator struct {
-	ast              ast.RootNode
-	sourceLines      []string
-	sourceFile       string
-	symbolTable      *symboltable.SymbolTable
-	constants        []ConstantDefinition
-	constantMap      map[interface{}]int
-	variables        []interface{}
-	variablesMap     map[string]int
-	functions        []builtins.Function
-	functionsMap     map[string]int
-	mainBytecode     []byte
-	Bytecode         []byte
-	logger           *logger.Logger
-	debugMode        bool
-	debugInfo        *DebugInfo
-	currentSourcePos ast.Node
-	compiledFuncs    []FunctionInfo
-	scopeDepth       int
+	ast                ast.RootNode
+	sourceLines        []string
+	sourceFile         string
+	symbolTable        *symboltable.SymbolTable
+	constants          []ConstantDefinition
+	constantMap        map[interface{}]int
+	variables          []interface{}
+	variablesMap       map[string]int
+	functions          []builtins.Function
+	functionsMap       map[string]int
+	mainBytecode       []byte
+	Bytecode           []byte
+	logger             *logger.Logger
+	debugMode          bool
+	debugInfo          *DebugInfo
+	currentSourcePos   ast.Node
+	compiledFuncMap    map[string]int
+	scopeDepth         int
+	functionScopeDepth int
 }
 
 func NewCodeGenerator(tree ast.RootNode, srcLines []string, st *symboltable.SymbolTable, lgr *logger.Logger) *CodeGenerator {
@@ -125,12 +126,13 @@ func (cg *CodeGenerator) AddVariable(name string) int {
 }
 
 func (cg *CodeGenerator) Generate() string {
-	// write magic number and version
-	cg.Bytecode = append(cg.Bytecode, 0x7F, 'A', 'L', 'N')    // Magic number
-	cg.Bytecode = append(cg.Bytecode, 0x01, 0x00, 0x00, 0x00) // Version
+	cg.Bytecode = append(cg.Bytecode, 0x7F, 'A', 'L', 'N')
+	cg.Bytecode = append(cg.Bytecode, 0x01, 0x00, 0x00, 0x00)
+	cg.Bytecode = append(cg.Bytecode, 0x00, 0x00, 0x00, 0x00)
 
 	builtins := builtins.GetBuiltins()
 	cg.functionsMap = make(map[string]int)
+	cg.compiledFuncMap = make(map[string]int)
 	for name, fn := range builtins {
 		cg.functions = append(cg.functions, fn)
 		cg.functionsMap[name] = len(cg.functions) - 1
@@ -140,18 +142,24 @@ func (cg *CodeGenerator) Generate() string {
 	cg.logger.Debug("Starting code generation")
 	cg.logger.Debug("Symbol Table at root:")
 	cg.logger.Debug("%+v", st)
-	for _, stmt := range cg.ast.Children {
-		cg.generateStatement(stmt, st)
+
+	for _, expr := range cg.ast.Children {
+		cg.generateExpression(expr, st)
 	}
 
 	cg.writeConstantsPool()
 	cg.Bytecode = append(cg.Bytecode, cg.mainBytecode...)
 
+	mainAddress := cg.compiledFuncMap["main"]
+	cg.Bytecode[8] = byte(mainAddress & 0xFF)
+	cg.Bytecode[9] = byte((mainAddress >> 8) & 0xFF)
+	cg.Bytecode[10] = byte((mainAddress >> 16) & 0xFF)
+	cg.Bytecode[11] = byte((mainAddress >> 24) & 0xFF)
+
 	return ""
 }
 
 func (cg *CodeGenerator) writeConstantsPool() {
-	// write constants pool
 	cg.Bytecode = append(cg.Bytecode, byte(len(cg.constants)))
 	for _, constant := range cg.constants {
 		cg.logger.Debug("Writing constant to bytecode: %#v", constant)
@@ -167,23 +175,42 @@ func (cg *CodeGenerator) writeConstantsPool() {
 	}
 }
 
-func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.SymbolTable) string {
-	if cg.debugMode && stmt != nil {
-		if block, ok := stmt.(*ast.BlockNode); ok && block == nil {
+func (cg *CodeGenerator) generateExpression(node ast.Node, st *symboltable.SymbolTable) string {
+	if cg.debugMode && node != nil {
+		if block, ok := node.(*ast.BlockNode); ok && block == nil {
 		} else {
-			cg.setCurrentSourcePos(stmt)
+			cg.setCurrentSourcePos(node)
 		}
 	}
 
-	switch node := stmt.(type) {
+	switch n := node.(type) {
+	case ast.NumberNode:
+		intValue, err := strconv.ParseInt(n.Value.(string), 10, 8)
+		if err != nil {
+			cg.logger.Error("Error parsing number '%s' at position %+v: %v", n.Value, n.Pos(), err)
+			return ""
+		}
+		constIdx := cg.AddConstant(IntTypeId, int8(intValue))
+		cg.logger.Debug("Generating LOAD_CONST for number %d at index %d", intValue, constIdx)
+		cg.emit(opcode.LOAD_CONST, constIdx)
+	case ast.IdentifierNode:
+		if varIdx, exists := cg.variablesMap[n.Name]; exists {
+			if cg.debugMode {
+				cg.emitWithVarName(opcode.LOAD_VAR, n.Name, varIdx)
+			} else {
+				cg.emit(opcode.LOAD_VAR, varIdx)
+			}
+		} else {
+			cg.logger.Error("Undefined variable '%s' at position %+v", n.Name, n.Pos())
+		}
 	case ast.VariableDeclarationNode:
-		return cg.generateVariableDeclaration(node, st)
+		return cg.generateVariableDeclaration(n, st)
 	case ast.AssignmentNode:
-		cg.generateExpression(node.Right, st)
+		cg.generateExpression(n.Right, st)
 		var varName string
-		switch node.Left.(type) {
+		switch n.Left.(type) {
 		case ast.IdentifierNode:
-			varName = node.Left.(ast.IdentifierNode).Name
+			varName = n.Left.(ast.IdentifierNode).Name
 			if cg.debugMode {
 				cg.setCurrentSourcePos(node)
 				cg.emitWithVarName(opcode.STORE_VAR, varName, cg.variablesMap[varName])
@@ -191,37 +218,36 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 				cg.emit(opcode.STORE_VAR, cg.variablesMap[varName])
 			}
 		default:
-			cg.logger.Error("Invalid assignment target at position %+v", node.Left.Pos())
+			cg.logger.Error("Invalid assignment target at position %+v", n.Left.Pos())
 		}
 	case ast.BinaryOpNode:
-		cg.generateExpression(node, st)
-	case ast.IfStatementNode:
-		cg.generateExpression(node.Condition, st)
+		cg.generateBinaryExpression(n, st)
+	case ast.IfExpressionNode:
+		cg.generateBinaryExpression(n.Condition, st)
 		if cg.debugMode {
 			cg.setCurrentSourcePos(node)
 		}
 		cg.emit(opcode.JUMP_IF_FALSE, 0)
 		thenStart := len(cg.mainBytecode)
-		cg.generateStatement(node.ThenBranch, st)
+		cg.generateExpression(n.ThenBranch, st)
 
-		if node.ElseBranch != nil {
+		if n.ElseBranch != nil {
 			elseStart := len(cg.mainBytecode)
 			cg.mainBytecode[thenStart-1] = byte(elseStart)
-			cg.generateStatement(node.ElseBranch, st)
+			cg.generateExpression(n.ElseBranch, st)
 		} else {
 			cg.mainBytecode[thenStart-1] = byte(len(cg.mainBytecode))
 		}
 	case *ast.BlockNode:
-		if node == nil {
+		if n == nil {
 			return ""
 		}
 
 		varsBeforeScope := len(cg.variables)
 		cg.scopeDepth++
-		scopeVarIndex := len(cg.variables) - 1
-		cg.emit(opcode.START_SCOPE, scopeVarIndex)
-		for _, statement := range node.Statements {
-			cg.generateStatement(statement, node.SymbolTable)
+		cg.emit(opcode.START_SCOPE, varsBeforeScope)
+		for _, expr := range n.Expressions {
+			cg.generateExpression(expr, n.SymbolTable)
 		}
 		cg.emit(opcode.END_SCOPE)
 		cg.variables = cg.variables[:varsBeforeScope]
@@ -231,29 +257,43 @@ func (cg *CodeGenerator) generateStatement(stmt ast.Node, st *symboltable.Symbol
 		cg.logger.Debug("Entering new block scope in codegen")
 		varsBeforeScope := len(cg.variables)
 		cg.scopeDepth++
-		cg.emit(opcode.START_SCOPE, len(cg.variables)-1)
-		for _, statement := range node.Statements {
-			cg.generateStatement(statement, node.SymbolTable)
+		cg.emit(opcode.START_SCOPE, varsBeforeScope)
+		for _, expr := range n.Expressions {
+			cg.generateExpression(expr, n.SymbolTable)
 		}
 		cg.emit(opcode.END_SCOPE)
 		cg.variables = cg.variables[:varsBeforeScope]
 		cg.scopeDepth--
 	case ast.FunctionCallNode:
-		for _, arg := range node.Arguments {
+		cg.logger.Debug("Generating function call to '%s'", n.Name)
+		cg.logger.Debug("Function is at address: %d", cg.compiledFuncMap[n.Name])
+		for _, arg := range n.Arguments {
 			cg.generateExpression(arg, st)
 		}
 		if cg.debugMode {
 			cg.setCurrentSourcePos(node)
 		}
-		if fnIdx, exists := cg.functionsMap[node.Name]; exists {
-			cg.emit(opcode.CALL, fnIdx)
+		if fnIdx, exists := cg.functionsMap[n.Name]; exists {
+			cg.emit(opcode.CALL_BUILTIN, fnIdx)
 		} else {
-			cg.logger.Error("Undefined function '%s' at position %+v", node.Name, node.Pos())
+
+			if fnIdx, exists := cg.compiledFuncMap[n.Name]; exists {
+				cg.emit(opcode.CALL, fnIdx)
+			} else {
+				cg.logger.Error("Undefined function '%s' at position %+v", n.Name, n.Pos())
+			}
+
 		}
 	case ast.FunctionDeclarationNode:
-		return cg.generateFunctionDeclaration(node, st)
+		return cg.generateFunctionDeclaration(n, st)
+	case ast.ReturnNode:
+		scopesToClose := cg.scopeDepth - cg.functionScopeDepth
+		for i := 0; i < scopesToClose; i++ {
+			cg.emit(opcode.END_SCOPE)
+		}
+		cg.emit(opcode.RETURN)
 	default:
-		cg.logger.Warn("Unknown statement type: %T at position %+v", node, node.Pos())
+		cg.logger.Warn("Unknown expression type: %T at position %+v", node, node.Pos())
 	}
 
 	return ""
@@ -263,44 +303,35 @@ func (cg *CodeGenerator) generateFunctionDeclaration(node ast.FunctionDeclaratio
 	cg.logger.Debug("Generating function declaration for '%s'", node.Name)
 
 	functionStartPos := len(cg.mainBytecode)
-	var sourceMapStartLen int
-	if cg.debugMode {
-		sourceMapStartLen = len(cg.debugInfo.SourceMap)
-	}
+	cg.functionScopeDepth = cg.scopeDepth
 
-	varsBeforeScope := len(cg.variables)
+	savedVariablesMap := cg.variablesMap
+	savedVariables := cg.variables
+	cg.variablesMap = make(map[string]int)
+	cg.variables = nil
+
 	cg.scopeDepth++
-	scopeVarIndex := len(cg.variables) - 1
-	cg.emit(opcode.START_SCOPE, scopeVarIndex)
+	cg.emit(opcode.START_SCOPE, 0)
 
 	cg.logger.Debug("Adding function's %d parameters to variable map", len(node.Parameters))
 	for _, param := range node.Parameters {
-		cg.AddVariable(param.Name)
+		varIdx := cg.AddVariable(param.Name)
+		cg.emitWithVarName(opcode.STORE_VAR, param.Name, varIdx)
 	}
 
-	for _, statement := range node.Body.Statements {
-		cg.logger.Debug("Generating function body statement")
-		cg.generateStatement(statement, node.Body.SymbolTable)
+	for _, expr := range node.Body.Expressions {
+		cg.logger.Debug("Generating function body expression")
+		cg.generateExpression(expr, node.Body.SymbolTable)
 	}
 	cg.emit(opcode.END_SCOPE)
+	cg.emit(opcode.RETURN)
 	cg.scopeDepth--
-	cg.variables = cg.variables[:varsBeforeScope]
 
-	instructions := cg.mainBytecode[functionStartPos:]
-	cg.mainBytecode = cg.mainBytecode[:functionStartPos]
+	cg.variablesMap = savedVariablesMap
+	cg.variables = savedVariables
 
-	if cg.debugMode {
-		cg.debugInfo.SourceMap = cg.debugInfo.SourceMap[:sourceMapStartLen]
-	}
-
-	constIdx := cg.AddConstant(FunctionTypeId, instructions)
-
-	if cg.debugMode {
-		cg.compiledFuncs = append(cg.compiledFuncs, FunctionInfo{
-			ConstantIndex: constIdx,
-			Name:          node.Name,
-		})
-	}
+	cg.logger.Debug("Saving function '%s' start position at bytecode index %d", node.Name, functionStartPos)
+	cg.compiledFuncMap[node.Name] = functionStartPos
 
 	return ""
 }
@@ -321,7 +352,7 @@ func (cg *CodeGenerator) generateVariableDeclaration(node ast.VariableDeclaratio
 	return ""
 }
 
-func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.SymbolTable) string {
+func (cg *CodeGenerator) generateBinaryExpression(expr ast.Node, st *symboltable.SymbolTable) string {
 	if cg.debugMode && expr != nil {
 		cg.setCurrentSourcePos(expr)
 	}
@@ -349,8 +380,8 @@ func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.Symbo
 			cg.logger.Error("Undefined variable '%s' at position %+v", node.Name, node.Pos())
 		}
 	case ast.BinaryOpNode:
-		cg.generateExpression(node.Left, st)
-		cg.generateExpression(node.Right, st)
+		cg.generateBinaryExpression(node.Left, st)
+		cg.generateBinaryExpression(node.Right, st)
 
 		if cg.debugMode {
 			cg.setCurrentSourcePos(node)
@@ -375,9 +406,26 @@ func (cg *CodeGenerator) generateExpression(expr ast.Node, st *symboltable.Symbo
 		default:
 			cg.logger.Error("Unknown binary operator '%s' at position %+v", op, node.Pos())
 		}
+	case ast.FunctionCallNode:
+		cg.logger.Debug("Generating function call to '%s'", node.Name)
+		for _, arg := range node.Arguments {
+			cg.generateExpression(arg, st)
+		}
+		if cg.debugMode {
+			cg.setCurrentSourcePos(node)
+		}
+		if fnIdx, exists := cg.functionsMap[node.Name]; exists {
+			cg.emit(opcode.CALL, fnIdx)
+		} else {
+			if fnIdx, exists := cg.compiledFuncMap[node.Name]; exists {
+				cg.emit(opcode.CALL, fnIdx)
+			} else {
+				cg.logger.Error("Undefined function '%s' at position %+v", node.Name, node.Pos())
+			}
+		}
 
 	default:
-		cg.logger.Warn("Unknown expression type: %T at position %+v", node, node.Pos())
+		cg.logger.Warn("Unknown binary expression type: %T at position %+v", node, node.Pos())
 	}
 	return ""
 }
@@ -387,7 +435,7 @@ func (cg *CodeGenerator) emit(op opcode.Opcode, operands ...int) {
 }
 
 func (cg *CodeGenerator) emitWithVarName(op opcode.Opcode, varName string, operands ...int) {
-	cg.logger.Debug("Emitting opcode: %d with operands %v", op, operands)
+	cg.logger.Debug("Emitting opcode: %s with operands %v", op, operands)
 
 	pc := len(cg.mainBytecode)
 
@@ -396,11 +444,13 @@ func (cg *CodeGenerator) emitWithVarName(op opcode.Opcode, varName string, opera
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
 	case opcode.ADD, opcode.SUB, opcode.MUL, opcode.DIV, opcode.EQ, opcode.LT, opcode.GT:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op))
-	case opcode.JUMP_IF_FALSE, opcode.JUMP_IF_TRUE, opcode.CALL:
+	case opcode.JUMP_IF_FALSE, opcode.JUMP_IF_TRUE, opcode.CALL, opcode.CALL_BUILTIN:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
 	case opcode.START_SCOPE:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
 	case opcode.END_SCOPE:
+		cg.mainBytecode = append(cg.mainBytecode, byte(op))
+	case opcode.RETURN:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op))
 	default:
 		cg.logger.Error("Unknown opcode to emit: %d", op)
@@ -432,7 +482,14 @@ func (cg *CodeGenerator) WriteDebugFile(outputPath string) error {
 		return nil
 	}
 
-	cg.debugInfo.Functions = cg.compiledFuncs
+	compiledFunctions := make([]FunctionInfo, 0, len(cg.compiledFuncMap))
+	for name, addr := range cg.compiledFuncMap {
+		compiledFunctions = append(compiledFunctions, FunctionInfo{
+			Name:    name,
+			Address: addr,
+		})
+	}
+	cg.debugInfo.Functions = compiledFunctions
 
 	data, err := json.MarshalIndent(cg.debugInfo, "", "  ")
 	if err != nil {

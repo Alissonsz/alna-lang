@@ -21,10 +21,9 @@ func (p *Parser) Parse() ast.RootNode {
 	}
 
 	for p.pos < len(p.tokens) {
-		program.Children = append(program.Children, p.ParseStatement())
+		program.Children = append(program.Children, p.parseExpression())
 	}
 
-	// Update end position to last child's end position
 	if len(program.Children) > 0 {
 		lastChild := program.Children[len(program.Children)-1]
 		program.Position.EndLine = lastChild.Pos().EndLine
@@ -41,23 +40,23 @@ func (p *Parser) parseBlock() ast.BlockNode {
 	}
 	p.pos++
 
-	var statements []ast.Node
+	var expressions []ast.Node
 
 	nextToken := p.tokens[p.pos]
 	for nextToken.Type != lexer.CloseBracket && p.pos < len(p.tokens) {
-		statements = append(statements, p.ParseStatement())
+		expressions = append(expressions, p.parseExpression())
 		nextToken = p.tokens[p.pos]
 	}
 
 	p.pos++
 
 	return ast.BlockNode{
-		Statements: statements,
+		Expressions: expressions,
 		Position: common.Position{
-			Line:      statements[0].Pos().Line,
-			Column:    statements[0].Pos().Column,
-			EndLine:   statements[len(statements)-1].Pos().EndLine,
-			EndColumn: statements[len(statements)-1].Pos().EndColumn,
+			Line:      expressions[0].Pos().Line,
+			Column:    expressions[0].Pos().Column,
+			EndLine:   expressions[len(expressions)-1].Pos().EndLine,
+			EndColumn: expressions[len(expressions)-1].Pos().EndColumn,
 		},
 	}
 }
@@ -79,12 +78,13 @@ func (p *Parser) lastToken() lexer.Token {
 	return lexer.Token{Type: lexer.EOF, Value: "", Line: -1, StartColumn: -1, EndColumn: -1}
 }
 
-func (p *Parser) ParseStatement() ast.Node {
+func (p *Parser) parseExpression() ast.Node {
+	p.logger.Debug("Parsing expression at token: %v", p.tokens[p.pos])
 	token := p.tokens[p.pos]
 
 	switch token.Type {
 	case lexer.IfKeyword:
-		return p.parseIfStatement()
+		return p.parseIfExpression()
 	case lexer.DataType:
 		nextToken := p.peek()
 		if nextToken.Type == lexer.Identifier {
@@ -102,22 +102,33 @@ func (p *Parser) ParseStatement() ast.Node {
 		if p.peek().Type == lexer.Assignment {
 			return p.parseAssignment()
 		}
-		return p.parseExpression()
+		return p.parseBinaryExpression()
 	case lexer.OpenParenthesis, lexer.Number, lexer.BooleanOperator:
-		return p.parseExpression()
+		return p.parseBinaryExpression()
+	case lexer.ReturnKeyword:
+		p.pos++
+		return ast.ReturnNode{
+			Value: nil,
+			Position: common.Position{
+				Line:      token.Line,
+				Column:    token.StartColumn,
+				EndLine:   token.Line,
+				EndColumn: token.EndColumn,
+			},
+		}
 	default:
 		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Unexpected token '%v'", token.Value), p.sourceLines))
 	}
 }
 
-func (p *Parser) parseIfStatement() ast.Node {
+func (p *Parser) parseIfExpression() ast.Node {
 	token := p.tokens[p.pos]
 	if token.Type != lexer.IfKeyword {
 		panic(common.CompilerError(tokenToPosition(token), fmt.Sprintf("Expected 'if' keyword, got %v", token.Type), p.sourceLines))
 	}
 
 	p.pos++
-	expression := p.parseExpression()
+	condition := p.parseBinaryExpression()
 	var thenBranch *ast.BlockNode
 
 	nextToken := p.tokens[p.pos]
@@ -130,7 +141,7 @@ func (p *Parser) parseIfStatement() ast.Node {
 		panic(common.CompilerError(tokenToPosition(nextToken), "Expected '{' to start 'then' block", p.sourceLines))
 	}
 
-	if len(thenBranch.Statements) == 0 {
+	if len(thenBranch.Expressions) == 0 {
 		panic(common.CompilerError(thenBranch.Pos(), "'then' block cannot be empty", p.sourceLines))
 	}
 
@@ -143,14 +154,14 @@ func (p *Parser) parseIfStatement() ast.Node {
 			elseBlock := p.parseBlock()
 			elseBranch = &elseBlock
 
-			if len(elseBlock.Statements) == 0 {
+			if len(elseBlock.Expressions) == 0 {
 				panic(common.CompilerError(elseBlock.Pos(), "'else' block cannot be empty", p.sourceLines))
 			}
 		}
 	}
 
-	return ast.IfStatementNode{
-		Condition:  expression,
+	return ast.IfExpressionNode{
+		Condition:  condition,
 		ThenBranch: thenBranch,
 		ElseBranch: elseBranch,
 		Position: common.Position{
@@ -169,7 +180,7 @@ func (p *Parser) parseParenthised() ast.Node {
 	}
 
 	p.pos++
-	expression := p.parseExpression()
+	expression := p.parseBinaryExpression()
 
 	if p.pos >= len(p.tokens) {
 		panic(common.CompilerErrorEOF("Unexpected end of input, expected closing parenthesis ')'", tokenToPosition(p.lastToken()), p.sourceLines))
@@ -184,14 +195,12 @@ func (p *Parser) parseParenthised() ast.Node {
 	return expression
 }
 
-func (p *Parser) parseExpression() ast.Node {
+func (p *Parser) parseBinaryExpression() ast.Node {
 	if p.pos >= len(p.tokens) {
 		panic(common.CompilerErrorEOF("Unexpected end of input", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
-	ast := p.parseLowerPrecedence()
-
-	return ast
+	return p.parseLowerPrecedence()
 }
 
 func (p *Parser) parseLowerPrecedence() ast.Node {
@@ -251,7 +260,7 @@ func (p *Parser) parseHigherPrecedence() ast.Node {
 	token = p.tokens[p.pos]
 	for token.Type == lexer.BinaryOperador && isHighPrecedence(token) {
 		p.pos++
-		right := p.parseExpression()
+		right := p.parseBinaryExpression()
 		left = ast.BinaryOpNode{
 			Left:     left,
 			Operator: token,
@@ -336,6 +345,7 @@ func (p *Parser) parseIdentifier() ast.Node {
 }
 
 func (p *Parser) parseFunctionCall() ast.Node {
+	p.logger.Debug("Parsing function call at token: %v", p.tokens[p.pos])
 	identifierToken := p.tokens[p.pos]
 	if identifierToken.Type != lexer.Identifier {
 		panic(common.CompilerError(tokenToPosition(identifierToken), fmt.Sprintf("Expected identifier, got %v", identifierToken.Type), p.sourceLines))
@@ -350,7 +360,7 @@ func (p *Parser) parseFunctionCall() ast.Node {
 
 	var args []ast.Node
 	for p.pos < len(p.tokens) && p.tokens[p.pos].Type != lexer.CloseParenthesis {
-		arg := p.parseExpression()
+		arg := p.parseBinaryExpression()
 		args = append(args, arg)
 
 		if p.pos < len(p.tokens) && p.tokens[p.pos].Type == lexer.Comma {

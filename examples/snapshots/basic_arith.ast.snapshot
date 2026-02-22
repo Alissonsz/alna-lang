@@ -1,7 +1,4 @@
 Root
-HighPrecedence (/)
-    ├── Parenthised
-    │   └── HighPrecedence (*)
-    │       ├── Number: 34
-    │       └── Number: 2
-    └── Number: 100
+BinaryOp (+)
+    ├── Number: 5
+    └── Number: 2
