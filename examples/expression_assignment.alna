@@ -1,3 +1,7 @@
-int a = 5
-int arisu = 100
-arisu = (10 + 5) * a
+int main() {
+  int a = 5
+  int arisu = 100
+  arisu = (10 + 5) * a
+
+  __write(arisu)
+}

@@ -86,10 +86,10 @@ func main() {
 		}
 	}
 
-	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
+	os.WriteFile("out.alnac", codegen.Bytecode, 0644)
 
 	if *debug {
-		if err := codegen.WriteDebugFile("out.alnbc.debug"); err != nil {
+		if err := codegen.WriteDebugFile("out.alnac.debug"); err != nil {
 			log.Fatalf("Failed to write debug file: %v", err)
 		}
 	}
@@ -97,7 +97,7 @@ func main() {
 	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr.WithStep("vm"))
 
 	if *debug {
-		if err := vm.LoadDebugFile("out.alnbc.debug"); err != nil {
+		if err := vm.LoadDebugFile("out.alnac.debug"); err != nil {
 			log.Fatalf("Failed to load debug file: %v", err)
 		}
 	}
