@@ -53,7 +53,7 @@ func snapshotTest(t *testing.T, inputFile string) {
 
 	// Create lexer and analyze
 	scanner := bufio.NewScanner(file)
-	lex := lexer.NewLexer(*scanner, lgr)
+	lex := lexer.NewLexer(*scanner)
 	tokens, sourceLines, err := lex.Analyze()
 	if err != nil {
 		t.Fatalf("Lexical analysis failed: %v", err)

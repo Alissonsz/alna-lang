@@ -44,11 +44,21 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(srcCode)
-	lexical := lexer.NewLexer(*scanner, lgr.WithStep("lexer"))
+	lexical := lexer.NewLexer(*scanner)
 
 	tokens, sourceLines, err := lexical.Analyze()
 	if err != nil {
 		log.Panicf("Lexical analysis error: %v", err.Error())
+	}
+
+	if *verbose {
+		ll := lgr.WithStep("lexer")
+
+		ll.Println("\n=== TOKENS ===")
+		for _, token := range tokens {
+			ll.Debug("%+v", token)
+		}
+		ll.Println()
 	}
 
 	syntax := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))

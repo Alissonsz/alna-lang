@@ -59,13 +59,12 @@ type Lexer struct {
 	closeBracket        *regexp.Regexp
 }
 
-func NewLexer(src bufio.Scanner, lgr *logger.Logger) *Lexer {
+func NewLexer(src bufio.Scanner) *Lexer {
 	return &Lexer{
 		srcCode:             src,
 		lineNum:             0,
 		colNum:              0,
 		sourceLines:         []string{},
-		logger:              lgr,
 		binaryOperatorChars: regexp.MustCompile(`^(==|&&|\|\||<=|>=|!=|[+\-*/><])[^=&\|]`),
 		numberChars:         regexp.MustCompile(`^[0-9]+`),
 		whitespaceChars:     regexp.MustCompile(`^[ \t]+`),
@@ -86,8 +85,6 @@ func NewLexer(src bufio.Scanner, lgr *logger.Logger) *Lexer {
 
 func (l *Lexer) Analyze() ([]Token, []string, error) {
 	var tokens []Token
-
-	l.logger.Println("=== TOKENS ===")
 
 	lineTokens := l.consumeLine()
 	for lineTokens != nil {
@@ -116,14 +113,9 @@ func (l *Lexer) consumeLine() *[]Token {
 		if token.Type == Whitespace {
 			continue
 		}
-
-		l.logger.Debug("%+v", token)
 		tokens = append(tokens, token)
 	}
 
-	if l.logger.IsVerbose() && len(tokens) > 0 {
-		l.logger.Println()
-	}
 	return &tokens
 }
 

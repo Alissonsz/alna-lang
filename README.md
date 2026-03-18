@@ -66,3 +66,15 @@ go run main.go <source.alna>
 # Run with flags
 go run main.go -verbose examples/valid_program.alna
 ```
+
+## Testing
+
+```bash
+# Run the lexer snapshot tests
+go test ./internal/lexer
+```
+
+```bash
+# Run and update the snapshot tests
+go test ./internal/lexer -update
+```
