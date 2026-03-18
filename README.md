@@ -8,6 +8,12 @@ A simple programming language with its own lexer, parser, analyzer, code generat
 go build -o alna-lang main.go
 ```
 
+or
+
+```bash
+go build .
+```
+
 ## Run
 
 The compiler and runner are unified into a single command. It compiles the source code and immediately executes it:
