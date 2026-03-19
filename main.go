@@ -18,11 +18,12 @@ import (
 
 var verbose = flag.Bool("verbose", false, "print tokens and AST during compilation")
 var disassemble = flag.Bool("disassemble", false, "disassemble bytecode into human-readable format")
-var debug = flag.Bool("g", false, "run with TUI debugger (generates .alnbc.debug file)")
+var debug = flag.Bool("tui", false, "run with TUI debugger (generates .alnbc.debug file)")
 
 func main() {
 	flag.Parse()
 	args := flag.Args()
+	sourceFile := args[0]
 
 	if len(args) < 1 {
 		log.Fatalf("Please provide the source code file path as an argument.")
@@ -43,49 +44,62 @@ func main() {
 	}
 
 	scanner := bufio.NewScanner(srcCode)
-	lex := lexer.NewLexer(*scanner, lgr.WithStep("lexer"))
+	lexical := lexer.NewLexer(*scanner)
+	tokens, sourceLines, err := lexical.Analyze()
 
-	tokens, sourceLines, err := lex.Analyze()
+	if *verbose {
+		ll := lgr.WithStep("lexer")
+
+		ll.Println("\n=== TOKENS ===")
+		for _, token := range tokens {
+			ll.Debug("%+v", token)
+		}
+		ll.Println()
+	}
+
 	if err != nil {
 		log.Panicf("Lexical analysis error: %v", err.Error())
 	}
 
-	p := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))
-	tree := p.Parse()
+	syntax := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))
+	tree := syntax.Parse()
 
 	if *verbose {
 		fmt.Println("\n=== AST ===")
 		ast.PrintAST(tree, "", true)
 	}
 
-	analyzer := analyzer.NewAnalyzer(&tree, sourceLines, lgr.WithStep("analyzer"))
-	analyzer.Analyze()
+	semantic := analyzer.NewAnalyzer(&tree, sourceLines, lgr.WithStep("analyzer"))
+	semantic.Analyze()
 
 	if *verbose {
 		fmt.Println("\n=== SYMBOL TABLE ===")
-		analyzer.PrintSymbolTable()
+		semantic.PrintSymbolTable()
 	}
 
-	codegen := codegen.NewCodeGenerator(tree, sourceLines, analyzer.SymbolTable, lgr.WithStep("codegen"))
+	codegen := codegen.NewCodeGenerator(tree, sourceLines, semantic.SymbolTable, lgr.WithStep("codegen"))
+
 	if *debug {
-		codegen.SetDebugMode(args[0])
+		codegen.SetDebugMode(sourceFile)
 	}
 	codegen.Generate()
 
 	if *disassemble {
 		fmt.Println()
 		fmt.Print(disassembler.Disassemble(codegen.Bytecode))
-	} else if *verbose {
+	}
+
+	if *verbose {
 		lgr.Println("\n=== BYTECODE ===")
 		for i, b := range codegen.Bytecode {
 			lgr.Print("%04d: 0x%02X\n", i, b)
 		}
 	}
 
-	os.WriteFile("out.alnbc", codegen.Bytecode, 0644)
+	os.WriteFile("out.alnac", codegen.Bytecode, 0644)
 
 	if *debug {
-		if err := codegen.WriteDebugFile("out.alnbc.debug"); err != nil {
+		if err := codegen.WriteDebugFile("out.alnac.debug"); err != nil {
 			log.Fatalf("Failed to write debug file: %v", err)
 		}
 	}
@@ -93,7 +107,7 @@ func main() {
 	vm := vm.NewVM(codegen.Bytecode, sourceLines, *debug, lgr.WithStep("vm"))
 
 	if *debug {
-		if err := vm.LoadDebugFile("out.alnbc.debug"); err != nil {
+		if err := vm.LoadDebugFile("out.alnac.debug"); err != nil {
 			log.Fatalf("Failed to load debug file: %v", err)
 		}
 	}

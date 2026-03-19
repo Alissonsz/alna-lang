@@ -24,7 +24,7 @@ func snapshotTest(t *testing.T, inputFile string) {
 	// Create lexer and analyze
 	scanner := bufio.NewScanner(file)
 	lex := NewLexer(*scanner)
-	tokens, _, err := lex.Analyze(false) // verbose = false for tests
+	tokens, _, err := lex.Analyze()
 	if err != nil {
 		t.Fatalf("Lexical analysis failed: %v", err)
 	}

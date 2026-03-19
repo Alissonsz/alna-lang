@@ -1,13 +1,15 @@
-int a = 20
-int b = 10
+int main() {
+  int a = 20
+  int b = 10
+  
+  if a > 10 {
+    int c = 30
+    __write(c)
+  } else if a < 5 {
+    __write(a)
+  } else {
+    __write(a + b)
+  }
 
-int games(int x, int y) {
-   x + y
+  int arisu = 10
 }
-
-if a > 10 {
-  int c = 30
-  __write(c)
-} 
-
-int arisu = 10

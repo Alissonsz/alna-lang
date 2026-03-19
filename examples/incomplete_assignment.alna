@@ -1,2 +1,4 @@
-int x = 10
-y =
+it main() {
+  int x = 10
+  y =
+}

@@ -3,7 +3,7 @@ package lexer
 import (
 	"alna-lang/internal/logger"
 	"bufio"
-	"log"
+	"fmt"
 	"regexp"
 )
 
@@ -59,20 +59,19 @@ type Lexer struct {
 	closeBracket        *regexp.Regexp
 }
 
-func NewLexer(src bufio.Scanner, lgr *logger.Logger) *Lexer {
+func NewLexer(src bufio.Scanner) *Lexer {
 	return &Lexer{
 		srcCode:             src,
 		lineNum:             0,
 		colNum:              0,
 		sourceLines:         []string{},
-		logger:              lgr,
-		binaryOperatorChars: regexp.MustCompile(`^(==|&&|\|\||<=|>=|!=|[+\-*/><])[^=&\|]`),
+		binaryOperatorChars: regexp.MustCompile(`^(==|&&|\|\||<=|>=|!=|[+\-*/><])([^=&\|]|$)?`),
 		numberChars:         regexp.MustCompile(`^[0-9]+`),
 		whitespaceChars:     regexp.MustCompile(`^[ \t]+`),
 		openParenthesis:     regexp.MustCompile(`^\(`),
 		closeParenthesis:    regexp.MustCompile(`^\)`),
 		identifierChars:     regexp.MustCompile(`^([_A-Za-z][_A-Za-z0-9]*)`),
-		assignmentChars:     regexp.MustCompile(`^(=)[^=]`),
+		assignmentChars:     regexp.MustCompile(`^=`),
 		dataType:            regexp.MustCompile(`^(int|i8|i16|i32|i64)\b`),
 		comma:               regexp.MustCompile(`^,`),
 		ifKeyword:           regexp.MustCompile(`^if\b`),
@@ -87,20 +86,25 @@ func NewLexer(src bufio.Scanner, lgr *logger.Logger) *Lexer {
 func (l *Lexer) Analyze() ([]Token, []string, error) {
 	var tokens []Token
 
-	l.logger.Println("=== TOKENS ===")
-
-	lineTokens := l.consumeLine()
-	for lineTokens != nil {
-		tokens = append(tokens, *lineTokens...)
-		lineTokens = l.consumeLine()
+	for {
+		lineTokens, err := l.consumeLine()
+		if lineTokens != nil {
+			tokens = append(tokens, *lineTokens...)
+		}
+		if err != nil {
+			return tokens, l.sourceLines, err
+		}
+		if lineTokens == nil {
+			break
+		}
 	}
 
 	return tokens, l.sourceLines, nil
 }
 
-func (l *Lexer) consumeLine() *[]Token {
+func (l *Lexer) consumeLine() (*[]Token, error) {
 	if !l.srcCode.Scan() {
-		return nil
+		return nil, nil
 	}
 
 	l.lineNum++
@@ -112,19 +116,17 @@ func (l *Lexer) consumeLine() *[]Token {
 
 	var tokens []Token
 	for l.colNum < len(currentLine) {
-		token := l.getNextToken()
+		token, err := l.getNextToken()
+		if err != nil {
+			return &tokens, err
+		}
 		if token.Type == Whitespace {
 			continue
 		}
-
-		l.logger.Debug("%+v", token)
 		tokens = append(tokens, token)
 	}
 
-	if l.logger.IsVerbose() && len(tokens) > 0 {
-		l.logger.Println()
-	}
-	return &tokens
+	return &tokens, nil
 }
 
 func getStringMatch(re *regexp.Regexp, str string) string {
@@ -135,7 +137,7 @@ func getStringMatch(re *regexp.Regexp, str string) string {
 	return match[0]
 }
 
-func (l *Lexer) getNextToken() Token {
+func (l *Lexer) getNextToken() (Token, error) {
 	currentLine := l.srcCode.Text()
 	nextSubstr := currentLine[l.colNum:]
 
@@ -189,7 +191,7 @@ func (l *Lexer) getNextToken() Token {
 		value = getStringMatch(l.whitespaceChars, nextSubstr)
 		tokenType = Whitespace
 	default:
-		log.Panicf("Unknown symbol: '%s' at line %d, column %d\n", nextSubstr, l.lineNum, l.colNum)
+		return Token{}, fmt.Errorf("unknown symbol: '%s' at line %d, column %d", nextSubstr, l.lineNum, l.colNum)
 	}
 
 	tokenSize := len(value)
@@ -197,5 +199,5 @@ func (l *Lexer) getNextToken() Token {
 
 	l.colNum += tokenSize
 
-	return token
+	return token, nil
 }
