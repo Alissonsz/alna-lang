@@ -3,7 +3,7 @@ package lexer
 import (
 	"alna-lang/internal/logger"
 	"bufio"
-	"log"
+	"fmt"
 	"regexp"
 )
 
@@ -86,18 +86,25 @@ func NewLexer(src bufio.Scanner) *Lexer {
 func (l *Lexer) Analyze() ([]Token, []string, error) {
 	var tokens []Token
 
-	lineTokens := l.consumeLine()
-	for lineTokens != nil {
-		tokens = append(tokens, *lineTokens...)
-		lineTokens = l.consumeLine()
+	for {
+		lineTokens, err := l.consumeLine()
+		if lineTokens != nil {
+			tokens = append(tokens, *lineTokens...)
+		}
+		if err != nil {
+			return tokens, l.sourceLines, err
+		}
+		if lineTokens == nil {
+			break
+		}
 	}
 
 	return tokens, l.sourceLines, nil
 }
 
-func (l *Lexer) consumeLine() *[]Token {
+func (l *Lexer) consumeLine() (*[]Token, error) {
 	if !l.srcCode.Scan() {
-		return nil
+		return nil, nil
 	}
 
 	l.lineNum++
@@ -109,14 +116,17 @@ func (l *Lexer) consumeLine() *[]Token {
 
 	var tokens []Token
 	for l.colNum < len(currentLine) {
-		token := l.getNextToken()
+		token, err := l.getNextToken()
+		if err != nil {
+			return &tokens, err
+		}
 		if token.Type == Whitespace {
 			continue
 		}
 		tokens = append(tokens, token)
 	}
 
-	return &tokens
+	return &tokens, nil
 }
 
 func getStringMatch(re *regexp.Regexp, str string) string {
@@ -127,7 +137,7 @@ func getStringMatch(re *regexp.Regexp, str string) string {
 	return match[0]
 }
 
-func (l *Lexer) getNextToken() Token {
+func (l *Lexer) getNextToken() (Token, error) {
 	currentLine := l.srcCode.Text()
 	nextSubstr := currentLine[l.colNum:]
 
@@ -181,7 +191,7 @@ func (l *Lexer) getNextToken() Token {
 		value = getStringMatch(l.whitespaceChars, nextSubstr)
 		tokenType = Whitespace
 	default:
-		log.Panicf("Unknown symbol: '%s' at line %d, column %d\n", nextSubstr, l.lineNum, l.colNum)
+		return Token{}, fmt.Errorf("unknown symbol: '%s' at line %d, column %d", nextSubstr, l.lineNum, l.colNum)
 	}
 
 	tokenSize := len(value)
@@ -189,5 +199,5 @@ func (l *Lexer) getNextToken() Token {
 
 	l.colNum += tokenSize
 
-	return token
+	return token, nil
 }

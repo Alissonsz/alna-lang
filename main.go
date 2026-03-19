@@ -45,11 +45,7 @@ func main() {
 
 	scanner := bufio.NewScanner(srcCode)
 	lexical := lexer.NewLexer(*scanner)
-
 	tokens, sourceLines, err := lexical.Analyze()
-	if err != nil {
-		log.Panicf("Lexical analysis error: %v", err.Error())
-	}
 
 	if *verbose {
 		ll := lgr.WithStep("lexer")
@@ -59,6 +55,10 @@ func main() {
 			ll.Debug("%+v", token)
 		}
 		ll.Println()
+	}
+
+	if err != nil {
+		log.Panicf("Lexical analysis error: %v", err.Error())
 	}
 
 	syntax := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))
