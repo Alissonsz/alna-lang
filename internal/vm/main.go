@@ -231,6 +231,17 @@ func (vm *VM) Step() error {
 		vm.pushStack(result)
 		vm.logger.Debug("GT %v > %v -> %v", left, right, result)
 
+	case byte(opcode.LT):
+		right := vm.popStack()
+		left := vm.popStack()
+		result := left.(int) < right.(int)
+		vm.pushStack(result)
+		vm.logger.Debug("LT %v > %v -> %v", left, right, result)
+
+	case byte(opcode.JUMP):
+		target := vm.readByte()
+		vm.Pc = int(target) + vm.PcOffset
+
 	case byte(opcode.JUMP_IF_FALSE):
 		target := vm.readByte()
 		condition := vm.popStack()

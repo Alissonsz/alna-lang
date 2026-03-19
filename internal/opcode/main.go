@@ -52,6 +52,8 @@ func (op Opcode) String() string {
 		return "JUMP_IF_FALSE"
 	case JUMP_IF_TRUE:
 		return "JUMP_IF_TRUE"
+	case JUMP:
+		return "JUMP"
 	case START_SCOPE:
 		return "START_SCOPE"
 	case END_SCOPE:

@@ -230,11 +230,14 @@ func (cg *CodeGenerator) generateExpression(node ast.Node, st *symboltable.Symbo
 		cg.emit(opcode.JUMP_IF_FALSE, 0)
 		thenStart := len(cg.mainBytecode)
 		cg.generateExpression(n.ThenBranch, st)
+		cg.emit(opcode.JUMP, 0)
+		elseJump := len(cg.mainBytecode)
 
 		if n.ElseBranch != nil {
 			elseStart := len(cg.mainBytecode)
 			cg.mainBytecode[thenStart-1] = byte(elseStart)
 			cg.generateExpression(n.ElseBranch, st)
+			cg.mainBytecode[elseJump-1] = byte(len(cg.mainBytecode))
 		} else {
 			cg.mainBytecode[thenStart-1] = byte(len(cg.mainBytecode))
 		}
@@ -444,7 +447,7 @@ func (cg *CodeGenerator) emitWithVarName(op opcode.Opcode, varName string, opera
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
 	case opcode.ADD, opcode.SUB, opcode.MUL, opcode.DIV, opcode.EQ, opcode.LT, opcode.GT:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op))
-	case opcode.JUMP_IF_FALSE, opcode.JUMP_IF_TRUE, opcode.CALL, opcode.CALL_BUILTIN:
+	case opcode.JUMP_IF_FALSE, opcode.JUMP, opcode.JUMP_IF_TRUE, opcode.CALL, opcode.CALL_BUILTIN:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
 	case opcode.START_SCOPE:
 		cg.mainBytecode = append(cg.mainBytecode, byte(op), byte(operands[0]))
