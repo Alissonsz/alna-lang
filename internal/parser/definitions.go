@@ -1,13 +1,13 @@
 package parser
 
 import (
-	"alna-lang/internal/logger"
 	"alna-lang/internal/lexer"
+	"alna-lang/internal/logger"
 )
 
 type Parser struct {
 	tokens      []lexer.Token
-	pos         int
+	position    int
 	sourceLines []string
 	logger      *logger.Logger
 }

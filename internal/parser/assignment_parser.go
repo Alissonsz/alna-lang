@@ -9,20 +9,20 @@ import (
 
 func (p *Parser) parseAssignment() ast.Node {
 	p.logger.Debug("Parsing assignment expression")
-	token := p.tokens[p.pos]
+	token := p.tokens[p.position]
 	left := p.parseIdentifier()
 
-	if p.pos >= len(p.tokens) {
+	if p.position >= len(p.tokens) {
 		panic(common.CompilerErrorEOF("Unexpected end of input, expected '='", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
-	assignToken := p.tokens[p.pos]
+	assignToken := p.tokens[p.position]
 	if assignToken.Type != lexer.Assignment {
 		panic(common.CompilerError(tokenToPosition(assignToken), fmt.Sprintf("Expected '=', got %v", assignToken.Type), p.sourceLines))
 	}
 
-	p.pos++
-	if p.pos >= len(p.tokens) {
+	p.position++
+	if p.position >= len(p.tokens) {
 		panic(common.CompilerErrorEOF("Unexpected end of input, expected expression after '='", tokenToPosition(p.lastToken()), p.sourceLines))
 	}
 
