@@ -1,0 +1,6 @@
+{Type:OpenParenthesis Value:( Line:1 StartColumn:0 EndColumn:1}
+{Type:Number Value:5 Line:1 StartColumn:1 EndColumn:2}
+{Type:BinaryOperador Value:+ Line:1 StartColumn:3 EndColumn:4}
+{Type:Number Value:3 Line:1 StartColumn:5 EndColumn:6}
+{Type:BinaryOperador Value:* Line:1 StartColumn:7 EndColumn:8}
+{Type:Number Value:2 Line:1 StartColumn:9 EndColumn:10}
