@@ -7,9 +7,12 @@ import (
 )
 
 func (p *Parser) blockCannotBeEmptyError(token lexer.Token) error {
-	message := "Block cannot be empty"
 	position := tokenToPosition(token)
-	return common.CompilerError(position, message, p.sourceLines)
+	return p.emptyBlockErrorAt(position)
+}
+
+func (p *Parser) emptyBlockErrorAt(position common.Position) error {
+	return common.CompilerError(position, "Block cannot be empty", p.sourceLines)
 }
 
 func (p *Parser) expectedGotError(token lexer.Token, expected string) error {
