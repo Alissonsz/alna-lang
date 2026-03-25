@@ -37,10 +37,8 @@ func (p *Parser) previousToken() lexer.Token {
 }
 
 func (p *Parser) advance() lexer.Token {
-	if p.position+1 >= len(p.tokens) {
-		return lexer.Token{Type: lexer.EOF, Value: "", Line: -1, StartColumn: -1, EndColumn: -1}
+	if p.position < len(p.tokens) {
+		p.position++
 	}
-
-	p.position++
-	return p.tokens[p.position]
+	return p.currentToken()
 }

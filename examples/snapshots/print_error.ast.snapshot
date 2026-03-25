@@ -1,0 +1,20 @@
+Root
+VariableDeclaration
+│   ├── Name: a
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 10
+VariableDeclaration
+│   ├── Name: b
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 20
+VariableDeclaration
+│   ├── Name: c
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 30
+VariableDeclaration
+│   ├── Name: d
+│   ├── Type: int
+│   └── Initializer: none

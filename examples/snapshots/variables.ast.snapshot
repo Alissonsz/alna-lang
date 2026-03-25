@@ -1,0 +1,27 @@
+Root
+VariableDeclaration
+│   ├── Name: x
+│   ├── Type: int
+│   └── Initializer:
+│       └── Number: 10
+VariableDeclaration
+│   ├── Name: y
+│   ├── Type: int
+│   └── Initializer:
+│       └── BinaryOp (+)
+│           ├── Number: 20
+│           └── Number: 30
+VariableDeclaration
+│   ├── Name: result
+│   ├── Type: int
+│   └── Initializer:
+│       └── BinaryOp (*)
+│           ├── Identifier: x
+│           └── Identifier: y
+VariableDeclaration
+    ├── Name: a
+    ├── Type: int
+    └── Initializer:
+        └── BinaryOp (+)
+            ├── Number: 5
+            └── Number: 3
