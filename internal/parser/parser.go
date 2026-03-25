@@ -75,11 +75,16 @@ func (p *Parser) parseIfExpression() (ast.Node, error) {
 		return nil, err
 	}
 
-	var elseBranch *ast.BlockNode
+	var elseBranch ast.Node
 	if p.currentToken().Type == lexer.ElseKeyword {
 		p.advance()
 
-		elseBranch, err = p.parseConditionedBlock()
+		if p.currentToken().Type == lexer.IfKeyword {
+			elseBranch, err = p.parseIfExpression()
+		} else {
+			elseBranch, err = p.parseConditionedBlock()
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -98,19 +103,17 @@ func (p *Parser) parseIfExpression() (ast.Node, error) {
 	}, nil
 }
 
-func (p *Parser) parseConditionedBlock() (*ast.BlockNode, error) {
-	var conditionedBlock *ast.BlockNode
+func (p *Parser) parseConditionedBlock() (ast.BlockNode, error) {
 	block, err := p.parseBlock()
 	if err != nil {
-		return &ast.BlockNode{}, err
+		return ast.BlockNode{}, err
 	}
 
-	conditionedBlock = &block
-	if len(conditionedBlock.Expressions) == 0 {
-		return &ast.BlockNode{}, p.emptyBlockErrorAt(conditionedBlock.Pos())
+	if len(block.Expressions) == 0 {
+		return ast.BlockNode{}, p.emptyBlockErrorAt(block.Pos())
 	}
 
-	return conditionedBlock, nil
+	return block, nil
 }
 
 func (p *Parser) parseBlock() (ast.BlockNode, error) {

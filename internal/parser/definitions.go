@@ -12,6 +12,10 @@ type Parser struct {
 	logger      *logger.Logger
 }
 
+func (p *Parser) StoppedAt() lexer.Token {
+	return p.currentToken()
+}
+
 func (p *Parser) currentToken() lexer.Token {
 	if p.position >= len(p.tokens) {
 		return lexer.Token{Type: lexer.EOF, Value: "", Line: -1, StartColumn: -1, EndColumn: -1}

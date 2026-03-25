@@ -68,6 +68,7 @@ func main() {
 		lp := lgr.WithStep("parser")
 
 		lp.Println("\n=== AST ===")
+		lp.Debug("End of running at: %+v\n", syntax.StoppedAt())
 		ast.PrintAST(tree, "", true)
 	}
 

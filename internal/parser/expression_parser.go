@@ -36,6 +36,8 @@ func (p *Parser) parseLowerPrecedence() (ast.Node, error) {
 				EndColumn: right.Pos().EndColumn,
 			},
 		}
+
+		operator = p.currentToken()
 	}
 
 	return left, nil
