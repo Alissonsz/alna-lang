@@ -1,41 +1,51 @@
 Root
-VariableDeclaration
-│   ├── Name: a
-│   ├── Type: int
-│   └── Initializer:
-│       └── Number: 20
-VariableDeclaration
-│   ├── Name: b
-│   ├── Type: int
-│   └── Initializer:
-│       └── Number: 10
-FunctionDeclaration: games
-│   ├── Parameters:
-│   │   ├── Parameter: x Type: int
-│   │   └── Parameter: y Type: int
-│   ├── ReturnType: int
-│   └── Body:
-│       └── Block
-│           └── BinaryOp (+)
-│               ├── Identifier: x
-│               └── Identifier: y
-IfExpression
-│   ├── Condition:
-│   │   ├── BinaryOp (>)
-│   │   │   ├── Identifier: a
-│   │   │   └── Number: 10
-│   ├── ThenBlock:
-│   │   ├── Block
-│   │   │   ├── VariableDeclaration
-│   │   │   │   ├── Name: c
-│   │   │   │   ├── Type: int
-│   │   │   │   └── Initializer:
-│   │   │   │       └── Number: 30
-│   │   │   └── FunctionCall: __write
-│   │   │       └── Identifier: c
-│   └── ElseBlock:
-VariableDeclaration
-    ├── Name: arisu
-    ├── Type: int
-    └── Initializer:
-        └── Number: 10
+FunctionDeclaration: main
+    ├── Parameters:
+    ├── ReturnType: int
+    └── Body:
+        └── Block
+            ├── VariableDeclaration
+            │   ├── Name: a
+            │   ├── Type: int
+            │   └── Initializer:
+            │       └── Number: 20
+            ├── VariableDeclaration
+            │   ├── Name: b
+            │   ├── Type: int
+            │   └── Initializer:
+            │       └── Number: 10
+            ├── IfExpression
+            │   ├── Condition:
+            │   │   ├── BinaryOp (>)
+            │   │   │   ├── Identifier: a
+            │   │   │   └── Number: 10
+            │   ├── ThenBlock:
+            │   │   ├── Block
+            │   │   │   ├── VariableDeclaration
+            │   │   │   │   ├── Name: c
+            │   │   │   │   ├── Type: int
+            │   │   │   │   └── Initializer:
+            │   │   │   │       └── Number: 30
+            │   │   │   └── FunctionCall: __write
+            │   │   │       └── Identifier: c
+            │   └── ElseBlock:
+            │       └── IfExpression
+            │           ├── Condition:
+            │           │   ├── BinaryOp (<)
+            │           │   │   ├── Identifier: a
+            │           │   │   └── Number: 5
+            │           ├── ThenBlock:
+            │           │   ├── Block
+            │           │   │   └── FunctionCall: __write
+            │           │   │       └── Identifier: a
+            │           └── ElseBlock:
+            │               └── Block
+            │                   └── FunctionCall: __write
+            │                       └── BinaryOp (+)
+            │                           ├── Identifier: a
+            │                           └── Identifier: b
+            └── VariableDeclaration
+                ├── Name: arisu
+                ├── Type: int
+                └── Initializer:
+                    └── Number: 10

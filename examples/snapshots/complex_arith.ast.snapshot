@@ -1,0 +1,18 @@
+Root
+BinaryOp (-)
+    ├── BinaryOp (-)
+    │   ├── BinaryOp (+)
+    │   │   ├── Number: 4
+    │   │   └── BinaryOp (*)
+    │   │       ├── Number: 3
+    │   │       └── Number: 4
+    │   └── Number: 2
+    └── BinaryOp (-)
+        ├── BinaryOp (*)
+        │   ├── Number: 4
+        │   └── Number: 6
+        └── BinaryOp (*)
+            ├── Number: 2
+            └── BinaryOp (+)
+                ├── Number: 3
+                └── Number: 2
