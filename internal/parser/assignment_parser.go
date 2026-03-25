@@ -4,38 +4,42 @@ import (
 	"alna-lang/internal/ast"
 	"alna-lang/internal/common"
 	"alna-lang/internal/lexer"
-	"fmt"
 )
 
-func (p *Parser) parseAssignment() ast.Node {
-	p.logger.Debug("Parsing assignment expression")
-	token := p.tokens[p.position]
-	left := p.parseIdentifier()
-
-	if p.position >= len(p.tokens) {
-		panic(common.CompilerErrorEOF("Unexpected end of input, expected '='", tokenToPosition(p.lastToken()), p.sourceLines))
+func (p *Parser) parseAssignment() (ast.Node, error) {
+	identifier, err := p.parseIdentifier()
+	if err != nil {
+		return nil, err
 	}
 
-	assignToken := p.tokens[p.position]
-	if assignToken.Type != lexer.Assignment {
-		panic(common.CompilerError(tokenToPosition(assignToken), fmt.Sprintf("Expected '=', got %v", assignToken.Type), p.sourceLines))
+	assignment := p.currentToken()
+	if assignment.Type == lexer.EOF {
+		return nil, p.unexpectedEOFError()
 	}
 
-	p.position++
-	if p.position >= len(p.tokens) {
-		panic(common.CompilerErrorEOF("Unexpected end of input, expected expression after '='", tokenToPosition(p.lastToken()), p.sourceLines))
+	if assignment.Type != lexer.Assignment {
+		return nil, p.expectedGotError(assignment, "=")
 	}
 
-	right := p.parseExpression()
+	p.advance()
+	if p.currentToken().Type == lexer.EOF {
+		return nil, p.unexpectedEOFError()
+	}
+
+	value, err := p.parseExpression()
+	if err != nil {
+		return nil, err
+	}
+
 	return ast.AssignmentNode{
-		Left:  left,
-		Right: right,
+		Left:  identifier,
+		Right: value,
 		Position: common.Position{
-			Line:      token.Line,
-			Column:    token.StartColumn,
-			EndLine:   right.Pos().EndLine,
-			EndColumn: right.Pos().EndColumn,
+			Line:      identifier.Pos().Line,
+			Column:    identifier.Pos().Column,
+			EndLine:   value.Pos().EndLine,
+			EndColumn: value.Pos().EndColumn,
 		},
-	}
+	}, nil
 
 }
