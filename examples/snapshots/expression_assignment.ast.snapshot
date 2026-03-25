@@ -1,20 +1,27 @@
 Root
-VariableDeclaration
-│   ├── Name: a
-│   ├── Type: int
-│   └── Initializer:
-│       └── Number: 5
-VariableDeclaration
-│   ├── Name: arisu
-│   ├── Type: int
-│   └── Initializer:
-│       └── Number: 100
-Assignment
-    ├── Target:
-    │   └── Identifier: arisu
-    └── Value:
-        └── BinaryOp (*)
-            ├── BinaryOp (+)
-            │   ├── Number: 10
-            │   └── Number: 5
-            └── Identifier: a
+FunctionDeclaration: main
+    ├── Parameters:
+    ├── ReturnType: int
+    └── Body:
+        └── Block
+            ├── VariableDeclaration
+            │   ├── Name: a
+            │   ├── Type: int
+            │   └── Initializer:
+            │       └── Number: 5
+            ├── VariableDeclaration
+            │   ├── Name: arisu
+            │   ├── Type: int
+            │   └── Initializer:
+            │       └── Number: 100
+            ├── Assignment
+            │   ├── Target:
+            │   │   └── Identifier: arisu
+            │   └── Value:
+            │       └── BinaryOp (*)
+            │           ├── BinaryOp (+)
+            │           │   ├── Number: 10
+            │           │   └── Number: 5
+            │           └── Identifier: a
+            └── FunctionCall: __write
+                └── Identifier: arisu

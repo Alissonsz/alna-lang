@@ -70,7 +70,7 @@ func snapshotTest(t *testing.T, inputFile string) {
 
 	// Create parser and parse
 	p := NewParser(tokens, sourceLines, lgr)
-	tree := p.Parse()
+	tree, _ := p.Parse()
 
 	// Capture AST output
 	output := captureASTPrint(tree)

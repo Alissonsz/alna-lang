@@ -62,11 +62,18 @@ func main() {
 	}
 
 	syntax := parser.NewParser(tokens, sourceLines, lgr.WithStep("parser"))
-	tree := syntax.Parse()
+	tree, err := syntax.Parse()
 
 	if *verbose {
-		fmt.Println("\n=== AST ===")
+		lp := lgr.WithStep("parser")
+
+		lp.Println("\n=== AST ===")
+		lp.Debug("End of running at: %+v\n", syntax.StoppedAt())
 		ast.PrintAST(tree, "", true)
+	}
+
+	if err != nil {
+		log.Panicf("Syntax analysis error: %v", err.Error())
 	}
 
 	semantic := analyzer.NewAnalyzer(&tree, sourceLines, lgr.WithStep("analyzer"))

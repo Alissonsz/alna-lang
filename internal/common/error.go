@@ -14,7 +14,7 @@ import (
 
 // CompilerError creates a formatted error message with source code context
 // This is the most common error function - use it for single-position errors
-func CompilerError(pos Position, message string, sourceLines []string) string {
+func CompilerError(pos Position, message string, sourceLines []string) error {
 	var sb strings.Builder
 
 	// Error header
@@ -70,18 +70,18 @@ func CompilerError(pos Position, message string, sourceLines []string) string {
 		}
 	}
 
-	return sb.String()
+	return fmt.Errorf("%s", sb.String())
 }
 
 // CompilerErrorSimple creates a simple error message without source code context
 // Used when we don't have a specific token or when source location is unavailable
-func CompilerErrorSimple(message string) string {
-	return fmt.Sprintf("\n\033[1;31mCompiler Error:\033[0m %s\n", message)
+func CompilerErrorSimple(message string) error {
+	return fmt.Errorf("\n\033[1;31mCompiler Error:\033[0m %s\n", message)
 }
 
 // CompilerErrorWithPosition creates an error message highlighting a Position span
 // This is useful for multi-line constructs like control flow statements
-func CompilerErrorWithPosition(pos Position, message string, sourceLines []string) string {
+func CompilerErrorWithPosition(pos Position, message string, sourceLines []string) error {
 	var sb strings.Builder
 
 	// Error header
@@ -162,12 +162,12 @@ func CompilerErrorWithPosition(pos Position, message string, sourceLines []strin
 		sb.WriteString(fmt.Sprintf("  %*d | %s\n", maxLineNumWidth, i, sourceLines[i-1]))
 	}
 
-	return sb.String()
+	return fmt.Errorf("%s", sb.String())
 }
 
 // CompilerErrorEOF creates an error message for unexpected end of input
 // Shows the last position to give context about where more input was expected
-func CompilerErrorEOF(message string, lastPos Position, sourceLines []string) string {
+func CompilerErrorEOF(lastPos Position, message string, sourceLines []string) error {
 	var sb strings.Builder
 
 	// Error header
@@ -217,5 +217,5 @@ func CompilerErrorEOF(message string, lastPos Position, sourceLines []string) st
 		}
 	}
 
-	return sb.String()
+	return fmt.Errorf("%s", sb.String())
 }
